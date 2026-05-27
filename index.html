@@ -3,7 +3,8 @@
 <head>
 <meta charset="UTF-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-<title>NHRMS Recruit AI</title>
+<title>NHRMS Recruit AI — Login</title>
+<script src="https://accounts.google.com/gsi/client" async defer></script>
 <style>
   :root {
     --bg: #f4f6fb;
@@ -31,6 +32,110 @@
 
   * { box-sizing: border-box; margin: 0; padding: 0; }
   body { font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif; background: var(--bg); color: var(--text); display: flex; height: 100vh; overflow: hidden; }
+
+  /* ── LOGIN SCREEN ── */
+  #login-screen {
+    position: fixed; inset: 0; z-index: 9999;
+    background: linear-gradient(135deg, #0f1117 0%, #1a1d2e 50%, #0d1526 100%);
+    display: flex; align-items: center; justify-content: center;
+  }
+  .login-bg-dots {
+    position: absolute; inset: 0; overflow: hidden; pointer-events: none;
+  }
+  .login-bg-dots::before {
+    content: ''; position: absolute; inset: 0;
+    background-image: radial-gradient(circle, rgba(79,110,247,.15) 1px, transparent 1px);
+    background-size: 40px 40px;
+  }
+  .login-card {
+    position: relative; background: #fff; border-radius: 20px;
+    padding: 48px 44px; width: 420px; max-width: 94vw;
+    box-shadow: 0 32px 80px rgba(0,0,0,.4);
+    animation: loginIn .3s ease;
+  }
+  @keyframes loginIn { from { opacity:0; transform: translateY(20px) scale(.97); } to { opacity:1; transform:none; } }
+  .login-logo {
+    display: flex; align-items: center; gap: 12px; margin-bottom: 32px;
+  }
+  .login-logo-icon {
+    width: 44px; height: 44px; background: var(--primary); border-radius: 12px;
+    display: flex; align-items: center; justify-content: center; font-size: 22px;
+  }
+  .login-logo-text { font-size: 18px; font-weight: 800; color: var(--text); line-height: 1.2; }
+  .login-logo-sub { font-size: 12px; color: var(--text-muted); }
+  .login-title { font-size: 24px; font-weight: 800; color: var(--text); margin-bottom: 8px; }
+  .login-sub { font-size: 14px; color: var(--text-muted); margin-bottom: 32px; line-height: 1.5; }
+  .login-divider {
+    display: flex; align-items: center; gap: 12px; margin-bottom: 24px;
+  }
+  .login-divider::before, .login-divider::after {
+    content: ''; flex: 1; height: 1px; background: var(--border);
+  }
+  .login-divider span { font-size: 12px; color: var(--text-muted); white-space: nowrap; }
+  #google-btn-wrap { width: 100%; margin-bottom: 24px; display: flex; justify-content: center; }
+  #google-btn-wrap iframe { border-radius: 10px !important; }
+  .login-cfg-link {
+    text-align: center; font-size: 12.5px; color: var(--text-muted); margin-top: 8px;
+  }
+  .login-cfg-link a { color: var(--primary); cursor: pointer; text-decoration: none; }
+  .login-cfg-link a:hover { text-decoration: underline; }
+  .login-setup-box {
+    background: #f8faff; border: 1.5px solid #e8ecff; border-radius: 10px;
+    padding: 16px; margin-top: 20px; display: none;
+  }
+  .login-setup-box.show { display: block; }
+  .login-setup-box h4 { font-size: 13px; font-weight: 700; margin-bottom: 10px; color: var(--text); }
+  .login-setup-box p { font-size: 12px; color: var(--text-muted); margin-bottom: 10px; line-height: 1.6; }
+  .login-setup-box ol { font-size: 12px; color: var(--text-muted); padding-left: 16px; margin-bottom: 12px; line-height: 1.8; }
+  .login-setup-box input {
+    width: 100%; border: 1.5px solid var(--border); border-radius: 8px;
+    padding: 9px 12px; font-size: 13px; outline: none; font-family: inherit;
+    transition: border-color .15s; margin-bottom: 8px;
+  }
+  .login-setup-box input:focus { border-color: var(--primary); }
+  .login-error {
+    background: var(--danger-light); color: #991b1b; border-radius: 8px;
+    padding: 10px 14px; font-size: 13px; margin-bottom: 16px; display: none;
+    border: 1px solid #fecaca;
+  }
+  .login-error.show { display: block; }
+
+  /* ── USER AVATAR IN TOPBAR ── */
+  .user-pill {
+    display: flex; align-items: center; gap: 8px;
+    padding: 5px 10px 5px 6px; border-radius: 99px;
+    border: 1.5px solid var(--border); cursor: pointer;
+    transition: border-color .15s; background: #fff;
+    position: relative;
+  }
+  .user-pill:hover { border-color: var(--primary); }
+  .user-avatar {
+    width: 28px; height: 28px; border-radius: 50%; object-fit: cover;
+    background: var(--primary); display: flex; align-items: center;
+    justify-content: center; font-size: 13px; color: #fff; font-weight: 700;
+    flex-shrink: 0; overflow: hidden;
+  }
+  .user-avatar img { width: 100%; height: 100%; object-fit: cover; }
+  .user-name { font-size: 13px; font-weight: 600; color: var(--text); max-width: 120px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .user-dropdown {
+    position: absolute; top: calc(100% + 8px); right: 0;
+    background: #fff; border-radius: 10px; border: 1.5px solid var(--border);
+    box-shadow: var(--shadow-md); padding: 8px; min-width: 180px;
+    display: none; z-index: 100;
+  }
+  .user-dropdown.show { display: block; }
+  .user-dropdown-info {
+    padding: 8px 10px 12px; border-bottom: 1px solid var(--border); margin-bottom: 6px;
+  }
+  .user-dropdown-name { font-size: 13.5px; font-weight: 700; }
+  .user-dropdown-email { font-size: 11.5px; color: var(--text-muted); margin-top: 2px; }
+  .user-dropdown-item {
+    display: flex; align-items: center; gap: 8px; padding: 8px 10px;
+    border-radius: 7px; font-size: 13px; cursor: pointer; transition: background .15s;
+  }
+  .user-dropdown-item:hover { background: #f8faff; }
+  .user-dropdown-item.danger { color: var(--danger); }
+  .user-dropdown-item.danger:hover { background: var(--danger-light); }
 
   /* ── SIDEBAR ── */
   #sidebar {
@@ -368,6 +473,47 @@
 </head>
 <body>
 
+<!-- LOGIN SCREEN -->
+<div id="login-screen">
+  <div class="login-bg-dots"></div>
+  <div class="login-card">
+    <div class="login-logo">
+      <div class="login-logo-icon">🤖</div>
+      <div>
+        <div class="login-logo-text">NHRMS Recruit AI</div>
+        <div class="login-logo-sub">AI-Powered Screening Platform</div>
+      </div>
+    </div>
+    <h1 class="login-title">Welcome back 👋</h1>
+    <p class="login-sub">Sign in to your recruiting workspace to screen candidates, send WhatsApp messages, and schedule interviews.</p>
+
+    <div class="login-error" id="login-error"></div>
+
+    <div class="login-divider"><span>Continue with</span></div>
+
+    <div id="google-btn-wrap"></div>
+
+    <div class="login-cfg-link">
+      Don't have a Google Client ID? <a onclick="toggleSetup()">Set up Google Sign-In →</a>
+    </div>
+
+    <div class="login-setup-box" id="setup-box">
+      <h4>⚙️ Configure Google Sign-In</h4>
+      <p>You need a free Google Client ID to enable Sign in with Google. Takes ~2 minutes:</p>
+      <ol>
+        <li>Go to <strong>console.cloud.google.com</strong></li>
+        <li>Create a project → APIs &amp; Services → Credentials</li>
+        <li>Click <strong>Create Credentials → OAuth Client ID</strong></li>
+        <li>Select <strong>Web application</strong></li>
+        <li>Under Authorised JavaScript origins, add:<br/><code style="font-size:11px;background:#e8ecff;padding:2px 6px;border-radius:4px">https://nhumanresources.github.io</code></li>
+        <li>Copy the Client ID and paste below</li>
+      </ol>
+      <input type="text" id="client-id-input" placeholder="Paste your Google Client ID here (ends in .apps.googleusercontent.com)" />
+      <button class="btn btn-primary" style="width:100%" onclick="saveClientId()">✅ Save & Reload</button>
+    </div>
+  </div>
+</div>
+
 <!-- SIDEBAR -->
 <nav id="sidebar">
   <div class="logo">
@@ -413,6 +559,19 @@
       <button class="btn btn-primary" id="topbar-action-btn" onclick="runAIScreening()" style="display:none">
         🧠 Run AI Screening
       </button>
+      <div class="user-pill" id="user-pill" onclick="toggleUserMenu()" style="display:none">
+        <div class="user-avatar" id="user-avatar-el"></div>
+        <span class="user-name" id="user-name-el"></span>
+        <span style="font-size:10px; color:var(--text-muted)">▾</span>
+        <div class="user-dropdown" id="user-dropdown">
+          <div class="user-dropdown-info">
+            <div class="user-dropdown-name" id="dd-name"></div>
+            <div class="user-dropdown-email" id="dd-email"></div>
+          </div>
+          <div class="user-dropdown-item" onclick="openSettings()">⚙️ API Settings</div>
+          <div class="user-dropdown-item danger" onclick="signOut()">🚪 Sign out</div>
+        </div>
+      </div>
     </div>
   </div>
 
@@ -461,6 +620,123 @@
 <div id="toast-wrap"></div>
 
 <script>
+// ─────────────────────────────────────────────
+//  AUTH — Google Sign-In
+// ─────────────────────────────────────────────
+const AUTH = {
+  user: null,
+  clientId: localStorage.getItem('nhrms_gcid') || ''
+};
+
+function initGoogleAuth() {
+  if (!AUTH.clientId) {
+    // Show a placeholder message in the button area
+    document.getElementById('google-btn-wrap').innerHTML =
+      `<div style="text-align:center;padding:14px;background:#f8faff;border-radius:10px;border:1.5px dashed #c7d2fe;font-size:13px;color:#4f6ef7;cursor:pointer" onclick="toggleSetup()">
+        ⚙️ Configure Google Client ID to enable Sign in with Google
+      </div>`;
+    return;
+  }
+  // Wait for GSI to load
+  const tryInit = () => {
+    if (typeof google === 'undefined') { setTimeout(tryInit, 200); return; }
+    google.accounts.id.initialize({
+      client_id: AUTH.clientId,
+      callback: handleGoogleCredential,
+      auto_select: false,
+      cancel_on_tap_outside: true
+    });
+    google.accounts.id.renderButton(
+      document.getElementById('google-btn-wrap'),
+      { theme: 'outline', size: 'large', width: 332, shape: 'rectangular', logo_alignment: 'center', text: 'signin_with' }
+    );
+  };
+  tryInit();
+}
+
+function handleGoogleCredential(response) {
+  try {
+    // Decode JWT payload (no verification needed — Google already verified it)
+    const payload = JSON.parse(atob(response.credential.split('.')[1].replace(/-/g,'+').replace(/_/g,'/')));
+    AUTH.user = { name: payload.name, email: payload.email, picture: payload.picture, sub: payload.sub };
+    sessionStorage.setItem('nhrms_user', JSON.stringify(AUTH.user));
+    onLoginSuccess();
+  } catch(e) {
+    showLoginError('Sign-in failed. Please try again.');
+  }
+}
+
+function onLoginSuccess() {
+  const u = AUTH.user;
+  // Hide login screen
+  document.getElementById('login-screen').style.display = 'none';
+  // Show user pill in topbar
+  const pill = document.getElementById('user-pill');
+  pill.style.display = 'flex';
+  const avatarEl = document.getElementById('user-avatar-el');
+  if (u.picture) {
+    avatarEl.innerHTML = `<img src="${u.picture}" alt="${u.name}" referrerpolicy="no-referrer" />`;
+  } else {
+    avatarEl.textContent = u.name.charAt(0).toUpperCase();
+  }
+  document.getElementById('user-name-el').textContent = u.name.split(' ')[0];
+  document.getElementById('dd-name').textContent = u.name;
+  document.getElementById('dd-email').textContent = u.email;
+  // Pre-fill recruiter name in config if not already set
+  if (!S.cfg.name || S.cfg.name === 'Recruiter') {
+    S.cfg.name = u.name.split(' ')[0];
+    localStorage.setItem('nhrms_cfg', JSON.stringify(S.cfg));
+  }
+}
+
+function signOut() {
+  sessionStorage.removeItem('nhrms_user');
+  AUTH.user = null;
+  document.getElementById('user-pill').style.display = 'none';
+  document.getElementById('user-dropdown').classList.remove('show');
+  document.getElementById('login-screen').style.display = 'flex';
+  if (typeof google !== 'undefined') {
+    google.accounts.id.disableAutoSelect();
+    google.accounts.id.revoke(AUTH.user?.email || '', () => {});
+  }
+  initGoogleAuth();
+}
+
+function toggleUserMenu() {
+  document.getElementById('user-dropdown').classList.toggle('show');
+}
+document.addEventListener('click', e => {
+  if (!document.getElementById('user-pill')?.contains(e.target)) {
+    document.getElementById('user-dropdown')?.classList.remove('show');
+  }
+});
+
+function openSettings() {
+  document.getElementById('user-dropdown').classList.remove('show');
+  document.getElementById('config-modal').classList.add('show');
+}
+
+function toggleSetup() {
+  document.getElementById('setup-box').classList.toggle('show');
+}
+
+function saveClientId() {
+  const val = document.getElementById('client-id-input').value.trim();
+  if (!val || !val.includes('.apps.googleusercontent.com')) {
+    showLoginError('Please enter a valid Google Client ID (ends in .apps.googleusercontent.com)');
+    return;
+  }
+  AUTH.clientId = val;
+  localStorage.setItem('nhrms_gcid', val);
+  location.reload();
+}
+
+function showLoginError(msg) {
+  const el = document.getElementById('login-error');
+  el.textContent = msg; el.classList.add('show');
+  setTimeout(() => el.classList.remove('show'), 4000);
+}
+
 // ─────────────────────────────────────────────
 //  STATE
 // ─────────────────────────────────────────────
@@ -1316,6 +1592,20 @@ document.getElementById('cfg-name').value = state.cfg.recruiterName;
 
 navigate('setup');
 updateBadges();
+
+// ── AUTH INIT ──
+// Check for existing session
+try {
+  const saved = sessionStorage.getItem('nhrms_user');
+  if (saved) {
+    AUTH.user = JSON.parse(saved);
+    onLoginSuccess();
+  } else {
+    initGoogleAuth();
+  }
+} catch(e) {
+  initGoogleAuth();
+}
 </script>
 </body>
 </html>
