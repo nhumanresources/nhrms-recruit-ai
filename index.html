@@ -600,6 +600,21 @@
         <label>Your Name (for messages)</label>
         <input type="text" id="cfg-name" placeholder="Sai Krishna" />
       </div>
+      <div style="margin-top:20px; padding-top:16px; border-top:1px solid var(--border)">
+        <div style="font-size:13px; font-weight:700; color:var(--text); margin-bottom:4px">📱 WhatsApp Auto-Send (Green API)</div>
+        <div style="font-size:12px; color:var(--text-muted); margin-bottom:12px">
+          Connect your business WhatsApp number to send automatically — no manual tapping needed.<br>
+          <a href="https://green-api.com" target="_blank" rel="noopener" style="color:var(--primary)">Get free credentials at green-api.com →</a>
+        </div>
+        <div class="config-row">
+          <label>Green API Instance ID</label>
+          <input type="text" id="cfg-green-instance" placeholder="1101234567" />
+        </div>
+        <div class="config-row">
+          <label>Green API Token</label>
+          <input type="password" id="cfg-green-token" placeholder="your-api-token" />
+        </div>
+      </div>
       <div style="margin-top:16px; display:flex; gap:10px;">
         <button class="btn btn-primary" onclick="saveConfig()">💾 Save Configuration</button>
         <button class="btn btn-outline" onclick="document.getElementById('config-modal').classList.remove('show')">Cancel</button>
@@ -817,6 +832,8 @@ const state = {
     claudeKey: '',
     waPhoneId: '',
     waToken: '',
+    greenInstance: '',
+    greenToken: '',
     topmate: 'recruiter',
     recruiterName: 'Recruiter'
   }
@@ -1424,13 +1441,13 @@ function renderWhatsApp() {
           ✅ Name is auto-personalized for each candidate
         </div>
         <div id="wa-send-info" style="background:var(--primary-light); border-radius:8px; padding:10px 14px; font-size:12.5px; color:var(--primary); margin-bottom:14px">
-          <strong>${state.waSelected.size} selected</strong> — opens WhatsApp with message pre-filled
+          <strong>${state.waSelected.size} selected</strong> — ${state.cfg.greenInstance && state.cfg.greenToken ? '🤖 will send automatically via bot' : 'opens WhatsApp with message pre-filled'}
         </div>
         <button class="btn btn-wa" style="width:100%; justify-content:center; padding:12px" onclick="sendWhatsAppMessages()" id="wa-send-btn">
           📱 Send to ${state.waSelected.size} Candidate${state.waSelected.size !== 1 ? 's' : ''}
         </button>
         <div style="margin-top:12px; font-size:12px; color:var(--text-muted); text-align:center">
-          💡 Click each button to open WhatsApp with the message ready — just hit Send
+          ${state.cfg.greenInstance && state.cfg.greenToken ? '✅ WhatsApp bot connected — messages send automatically' : '💡 Add Green API credentials in ⚙️ Settings to enable auto-send'}
         </div>
       </div>
     </div>
@@ -1443,7 +1460,7 @@ function toggleWA(id) {
   updateBadges();
   const check = document.getElementById(`wa-check-${id}`);
   if (check) { check.classList.toggle('checked', state.waSelected.has(id)); check.textContent = state.waSelected.has(id) ? '✓' : ''; }
-  document.getElementById('wa-send-info').innerHTML = `<strong>${state.waSelected.size} selected</strong> — opens WhatsApp with message pre-filled`;
+  document.getElementById('wa-send-info').innerHTML = `<strong>${state.waSelected.size} selected</strong> — ${state.cfg.greenInstance && state.cfg.greenToken ? '🤖 will send automatically via bot' : 'opens WhatsApp with message pre-filled'}`;
   document.getElementById('wa-send-btn').textContent = `📤 Send to ${state.waSelected.size} Candidate${state.waSelected.size !== 1 ? 's' : ''}`;
 }
 
@@ -1462,10 +1479,42 @@ function extractJDTitle() {
   return match ? match[1].trim().slice(0, 40) : 'Open Position';
 }
 
-function sendWhatsAppMessages() {
+async function sendWhatsAppMessages() {
   if (!state.waSelected.size) { toast('Select at least one candidate', 'error'); return; }
   const cfg = { ...state.cfg, jdTitle: extractJDTitle(), topmateLink: `https://topmate.io/${state.cfg.topmate || 'your-link'}` };
   const candidates = state.candidates.filter(c => state.waSelected.has(c.id));
+
+  // Green API auto-send if credentials configured
+  if (state.cfg.greenInstance && state.cfg.greenToken) {
+    const btn = document.getElementById('wa-send-btn');
+    btn.innerHTML = '<span class="loading-spinner"></span> Sending...';
+    btn.disabled = true;
+    let sent = 0, failed = 0;
+    for (const c of candidates) {
+      if (!c.phone) { failed++; continue; }
+      const phone = c.phone.replace(/\D/g, '');
+      const chatId = `${phone}@c.us`;
+      const message = WA_TEMPLATES[activeTemplate](c, cfg);
+      try {
+        const res = await fetch(
+          `https://api.green-api.com/waInstance${state.cfg.greenInstance}/sendMessage/${state.cfg.greenToken}`,
+          { method: 'POST', headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ chatId, message }) }
+        );
+        const data = await res.json();
+        if (data.idMessage) { sent++; c.status = 'messaged'; }
+        else { failed++; console.warn('Green API failed for', c.name, data); }
+      } catch (err) { failed++; console.error('Green API error', c.name, err); }
+    }
+    updateBadges();
+    btn.innerHTML = `📱 Send to ${state.waSelected.size} Candidate${state.waSelected.size !== 1 ? 's' : ''}`;
+    btn.disabled = false;
+    toast(`✅ ${sent} sent${failed ? `, ${failed} failed` : ''}`, sent > 0 ? 'success' : 'error');
+    renderWhatsApp();
+    return;
+  }
+
+  // No bot configured → wa.me links (zero setup, works instantly)
   showWaLinksModal(candidates, cfg);
 }
 
@@ -1624,6 +1673,8 @@ function saveConfig() {
   state.cfg.claudeKey = document.getElementById('cfg-claude-key')?.value || document.getElementById('quick-claude-key')?.value || state.cfg.claudeKey;
   state.cfg.topmate = document.getElementById('cfg-topmate')?.value || document.getElementById('quick-topmate')?.value || state.cfg.topmate;
   state.cfg.recruiterName = document.getElementById('cfg-name')?.value || document.getElementById('quick-name')?.value || state.cfg.recruiterName;
+  state.cfg.greenInstance = document.getElementById('cfg-green-instance')?.value || state.cfg.greenInstance;
+  state.cfg.greenToken = document.getElementById('cfg-green-token')?.value || state.cfg.greenToken;
   localStorage.setItem('nhrms_cfg', JSON.stringify(state.cfg));
   document.getElementById('config-modal').classList.remove('show');
   toast('✅ Settings saved!', 'success');
@@ -1656,6 +1707,8 @@ function updateBadges() {
 document.getElementById('cfg-claude-key').value = state.cfg.claudeKey;
 document.getElementById('cfg-topmate').value = state.cfg.topmate;
 document.getElementById('cfg-name').value = state.cfg.recruiterName;
+document.getElementById('cfg-green-instance').value = state.cfg.greenInstance || '';
+document.getElementById('cfg-green-token').value = state.cfg.greenToken || '';
 
 navigate('setup');
 updateBadges();
