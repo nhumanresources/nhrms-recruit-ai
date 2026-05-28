@@ -3,8 +3,9 @@
 <head>
 <meta charset="UTF-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-<title>NHRMS Recruit AI — Login</title>
+<title>NHRMS Recruit AI ‚Äî Login</title>
 <script src="https://accounts.google.com/gsi/client" async defer></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js"></script>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
@@ -37,7 +38,7 @@
   * { box-sizing: border-box; margin: 0; padding: 0; }
   body { font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif; background: var(--bg); color: var(--text); display: flex; height: 100vh; overflow: hidden; }
 
-  /* ── LOGIN SCREEN ── */
+  /* ‚îÄ‚îÄ LOGIN SCREEN ‚îÄ‚îÄ */
   #login-screen {
     position: fixed; inset: 0; z-index: 9999;
     background: linear-gradient(135deg, #080e1a 0%, #0d1834 50%, #0a1628 100%);
@@ -112,7 +113,7 @@
   }
   .login-error.show { display: block; }
 
-  /* ── USER AVATAR IN TOPBAR ── */
+  /* ‚îÄ‚îÄ USER AVATAR IN TOPBAR ‚îÄ‚îÄ */
   .user-pill {
     display: flex; align-items: center; gap: 8px;
     padding: 5px 10px 5px 6px; border-radius: 99px;
@@ -149,7 +150,7 @@
   .user-dropdown-item.danger { color: var(--danger); }
   .user-dropdown-item.danger:hover { background: var(--danger-light); }
 
-  /* ── SIDEBAR ── */
+  /* ‚îÄ‚îÄ SIDEBAR ‚îÄ‚îÄ */
   #sidebar {
     width: 252px; min-width: 252px;
     background: linear-gradient(180deg, #0d1420 0%, #111d35 100%);
@@ -199,7 +200,7 @@
   }
   .settings-btn:hover { color: #fff; background: rgba(255,255,255,.06); }
 
-  /* ── MAIN ── */
+  /* ‚îÄ‚îÄ MAIN ‚îÄ‚îÄ */
   #main { flex: 1; display: flex; flex-direction: column; overflow: hidden; }
   .topbar {
     background: var(--card); border-bottom: 1px solid var(--border);
@@ -230,7 +231,7 @@
 
   .content { flex: 1; overflow-y: auto; padding: 28px 32px; }
 
-  /* ── SETUP VIEW ── */
+  /* ‚îÄ‚îÄ SETUP VIEW ‚îÄ‚îÄ */
   .setup-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; margin-bottom: 24px; }
   .card {
     background: var(--card); border-radius: var(--radius);
@@ -270,6 +271,36 @@
   }
   .upload-status.show { display: flex; }
 
+  /* JD PDF upload zone */
+  .jd-pdf-zone {
+    border: 2px dashed var(--border);
+    border-radius: 10px;
+    padding: 18px 16px;
+    text-align: center;
+    cursor: pointer;
+    transition: border-color .2s, background .2s;
+    background: #fafbff;
+    position: relative;
+  }
+  .jd-pdf-zone:hover, .jd-pdf-zone.drag-over {
+    border-color: var(--primary);
+    background: var(--primary-light);
+  }
+  .jd-pdf-zone input[type=file] {
+    position: absolute; inset: 0; opacity: 0; cursor: pointer; width: 100%; height: 100%;
+  }
+  .jd-pdf-loaded {
+    display: flex; align-items: center; gap: 10px;
+    background: #f0fdf4; border: 1.5px solid #86efac;
+    border-radius: 10px; padding: 10px 14px;
+  }
+  .jd-q-chip {
+    display: inline-flex; align-items: center; gap: 6px;
+    background: var(--primary-light); color: var(--primary-dark);
+    border-radius: 20px; padding: 4px 10px; font-size: 11.5px;
+    font-weight: 500; margin: 3px 4px 3px 0;
+  }
+
   textarea.jd-input {
     width: 100%; height: 140px; border: 1.5px solid var(--border);
     border-radius: var(--radius-sm); padding: 12px; font-size: 13.5px;
@@ -288,7 +319,7 @@
   }
   .config-row input:focus { border-color: var(--primary); }
 
-  /* ── CANDIDATES TABLE ── */
+  /* ‚îÄ‚îÄ CANDIDATES TABLE ‚îÄ‚îÄ */
   .table-wrap { overflow-x: auto; }
   table { width: 100%; border-collapse: collapse; font-size: 13.5px; }
   thead th {
@@ -321,7 +352,7 @@
   .candidate-name { font-weight: 600; }
   .candidate-role { font-size: 12px; color: var(--text-muted); margin-top: 2px; }
 
-  /* ── CHAT VIEW ── */
+  /* ‚îÄ‚îÄ CHAT VIEW ‚îÄ‚îÄ */
   .chat-layout { display: grid; grid-template-columns: 1fr 320px; gap: 20px; height: calc(100vh - 130px); }
   .chat-panel { display: flex; flex-direction: column; background: var(--card); border-radius: var(--radius); box-shadow: var(--shadow); overflow: hidden; }
   .chat-header {
@@ -392,7 +423,7 @@
   .sc-score { font-size: 11.5px; color: var(--success); font-weight: 600; margin-top: 6px; }
   .sc-actions { display: flex; gap: 6px; margin-top: 8px; }
 
-  /* ── WHATSAPP VIEW ── */
+  /* ‚îÄ‚îÄ WHATSAPP VIEW ‚îÄ‚îÄ */
   .wa-layout { display: grid; grid-template-columns: 1fr 400px; gap: 20px; }
   .wa-candidates { display: flex; flex-direction: column; gap: 10px; }
   .wa-card {
@@ -420,7 +451,7 @@
   }
   .template-tab.active { background: var(--primary); color: #fff; border-color: var(--primary); }
 
-  /* ── CALENDAR VIEW ── */
+  /* ‚îÄ‚îÄ CALENDAR VIEW ‚îÄ‚îÄ */
   .cal-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(300px, 1fr)); gap: 16px; }
   .cal-card { background: var(--card); border-radius: var(--radius); box-shadow: var(--shadow); padding: 20px; }
   .cal-card .name { font-size: 15px; font-weight: 700; }
@@ -434,7 +465,7 @@
   }
   .topmate-link:hover { background: var(--primary); color: #fff; border-color: var(--primary); }
 
-  /* ── STATS ROW ── */
+  /* ‚îÄ‚îÄ STATS ROW ‚îÄ‚îÄ */
   .stats-row { display: grid; grid-template-columns: repeat(4, 1fr); gap: 16px; margin-bottom: 24px; }
   .stat-card {
     background: var(--card); border-radius: var(--radius); box-shadow: var(--shadow);
@@ -454,7 +485,7 @@
   .stat-value { font-size: 30px; font-weight: 800; margin-top: 6px; letter-spacing: -.03em; }
   .stat-sub { font-size: 12px; color: var(--text-muted); margin-top: 3px; }
 
-  /* ── MODAL ── */
+  /* ‚îÄ‚îÄ MODAL ‚îÄ‚îÄ */
   .modal-overlay {
     display: none; position: fixed; inset: 0; background: rgba(0,0,0,.45);
     z-index: 1000; align-items: center; justify-content: center;
@@ -473,7 +504,7 @@
   .modal-close:hover { background: #f1f5f9; }
   .modal-body { padding: 20px 24px 24px; }
 
-  /* ── TOAST ── */
+  /* ‚îÄ‚îÄ TOAST ‚îÄ‚îÄ */
   #toast-wrap { position: fixed; bottom: 24px; right: 24px; z-index: 2000; display: flex; flex-direction: column; gap: 8px; }
   .toast {
     background: #1e293b; color: #fff; padding: 12px 18px; border-radius: 10px;
@@ -520,13 +551,13 @@
   <div class="login-bg-dots"></div>
   <div class="login-card">
     <div class="login-logo">
-      <div class="login-logo-icon">🤖</div>
+      <div class="login-logo-icon">ü§ñ</div>
       <div>
         <div class="login-logo-text">NHRMS Recruit AI</div>
         <div class="login-logo-sub">AI-Powered Screening Platform</div>
       </div>
     </div>
-    <h1 class="login-title">Welcome back 👋</h1>
+    <h1 class="login-title">Welcome back üëã</h1>
     <p class="login-sub">Sign in to your recruiting workspace to screen candidates, send WhatsApp messages, and schedule interviews.</p>
 
     <div class="login-error" id="login-error"></div>
@@ -536,22 +567,22 @@
     <div id="google-btn-wrap"></div>
 
     <div class="login-cfg-link">
-      Don't have a Google Client ID? <a onclick="toggleSetup()">Set up Google Sign-In →</a>
+      Don't have a Google Client ID? <a onclick="toggleSetup()">Set up Google Sign-In ‚Üí</a>
     </div>
 
     <div class="login-setup-box" id="setup-box">
-      <h4>⚙️ Configure Google Sign-In</h4>
+      <h4>‚öôÔ∏è Configure Google Sign-In</h4>
       <p>You need a free Google Client ID to enable Sign in with Google. Takes ~2 minutes:</p>
       <ol>
         <li>Go to <strong>console.cloud.google.com</strong></li>
-        <li>Create a project → APIs &amp; Services → Credentials</li>
-        <li>Click <strong>Create Credentials → OAuth Client ID</strong></li>
+        <li>Create a project ‚Üí APIs &amp; Services ‚Üí Credentials</li>
+        <li>Click <strong>Create Credentials ‚Üí OAuth Client ID</strong></li>
         <li>Select <strong>Web application</strong></li>
         <li>Under Authorised JavaScript origins, add:<br/><code style="font-size:11px;background:#e8ecff;padding:2px 6px;border-radius:4px">https://nhumanresources.github.io</code></li>
         <li>Copy the Client ID and paste below</li>
       </ol>
       <input type="text" id="client-id-input" placeholder="Paste your Google Client ID here (ends in .apps.googleusercontent.com)" />
-      <button class="btn btn-primary" style="width:100%" onclick="saveClientId()">✅ Save & Reload</button>
+      <button class="btn btn-primary" style="width:100%" onclick="saveClientId()">‚úÖ Save & Reload</button>
     </div>
   </div>
 </div>
@@ -559,7 +590,7 @@
 <!-- SIDEBAR -->
 <nav id="sidebar">
   <div class="logo">
-    <div class="logo-icon">🤖</div>
+    <div class="logo-icon">ü§ñ</div>
     <div>
       <div class="logo-text">NHRMS Recruit</div>
       <div class="logo-sub">AI Screening Platform</div>
@@ -577,33 +608,33 @@
 
   <div class="nav">
     <div class="nav-item active" data-view="setup">
-      <span class="nav-icon">⚙️</span> Setup
+      <span class="nav-icon">‚öôÔ∏è</span> Setup
     </div>
     <div class="nav-item" data-view="candidates">
-      <span class="nav-icon">👥</span> Candidates
+      <span class="nav-icon">üë•</span> Candidates
       <span class="nav-badge" id="badge-candidates">0</span>
     </div>
     <div class="nav-item" data-view="chat">
-      <span class="nav-icon">🧠</span> AI Screener
+      <span class="nav-icon">üß†</span> AI Screener
     </div>
     <div class="nav-item" data-view="whatsapp">
-      <span class="nav-icon">💬</span> WhatsApp
+      <span class="nav-icon">üí¨</span> WhatsApp
       <span class="nav-badge" id="badge-wa">0</span>
     </div>
     <div class="nav-item" data-view="calendar">
-      <span class="nav-icon">📅</span> Calendar
+      <span class="nav-icon">üìÖ</span> Calendar
       <span class="nav-badge" id="badge-cal">0</span>
     </div>
     <div class="nav-item" data-view="admin" id="admin-nav-item" style="display:none">
-      <span class="nav-icon">👑</span> Admin
+      <span class="nav-icon">üëë</span> Admin
     </div>
   </div>
   <div class="sidebar-footer">
     <div class="settings-btn" onclick="openChatWindow()" style="background:rgba(37,211,102,.16); color:#4ade80; border:1px solid rgba(37,211,102,.2)">
-      <span>💬</span> WA Chat
+      <span>üí¨</span> WA Chat
     </div>
     <div class="settings-btn" onclick="document.getElementById('config-modal').classList.add('show')">
-      <span>⚙️</span> API Settings
+      <span>‚öôÔ∏è</span> API Settings
     </div>
   </div>
 </nav>
@@ -615,19 +646,19 @@
     <div class="topbar-actions">
       <span id="topbar-status" style="font-size:13px; color:var(--text-muted)"></span>
       <button class="btn btn-primary" id="topbar-action-btn" onclick="runAIScreening()" style="display:none">
-        🧠 Run AI Screening
+        üß† Run AI Screening
       </button>
       <div class="user-pill" id="user-pill" onclick="toggleUserMenu()" style="display:none">
         <div class="user-avatar" id="user-avatar-el"></div>
         <span class="user-name" id="user-name-el"></span>
-        <span style="font-size:10px; color:var(--text-muted)">▾</span>
+        <span style="font-size:10px; color:var(--text-muted)">‚ñæ</span>
         <div class="user-dropdown" id="user-dropdown">
           <div class="user-dropdown-info">
             <div class="user-dropdown-name" id="dd-name"></div>
             <div class="user-dropdown-email" id="dd-email"></div>
           </div>
-          <div class="user-dropdown-item" onclick="openSettings()">⚙️ API Settings</div>
-          <div class="user-dropdown-item danger" onclick="signOut()">🚪 Sign out</div>
+          <div class="user-dropdown-item" onclick="openSettings()">‚öôÔ∏è API Settings</div>
+          <div class="user-dropdown-item danger" onclick="signOut()">üö™ Sign out</div>
         </div>
       </div>
     </div>
@@ -642,8 +673,8 @@
 <div class="modal-overlay" id="config-modal">
   <div class="modal">
     <div class="modal-header">
-      <h3>⚙️ API Configuration</h3>
-      <div class="modal-close" onclick="document.getElementById('config-modal').classList.remove('show')">×</div>
+      <h3>‚öôÔ∏è API Configuration</h3>
+      <div class="modal-close" onclick="document.getElementById('config-modal').classList.remove('show')">√ó</div>
     </div>
     <div class="modal-body">
       <div class="config-row">
@@ -659,10 +690,10 @@
         <input type="text" id="cfg-name" placeholder="Sai Krishna" />
       </div>
       <div style="margin-top:20px; padding-top:16px; border-top:1px solid var(--border)">
-        <div style="font-size:13px; font-weight:700; color:var(--text); margin-bottom:4px">📱 WhatsApp Auto-Send (Green API)</div>
+        <div style="font-size:13px; font-weight:700; color:var(--text); margin-bottom:4px">üì± WhatsApp Auto-Send (Green API)</div>
         <div style="font-size:12px; color:var(--text-muted); margin-bottom:12px">
-          Connect your business WhatsApp number to send automatically — no manual tapping needed.<br>
-          <a href="https://green-api.com" target="_blank" rel="noopener" style="color:var(--primary)">Get free credentials at green-api.com →</a>
+          Connect your business WhatsApp number to send automatically ‚Äî no manual tapping needed.<br>
+          <a href="https://green-api.com" target="_blank" rel="noopener" style="color:var(--primary)">Get free credentials at green-api.com ‚Üí</a>
         </div>
         <div class="config-row">
           <label>Green API Instance ID</label>
@@ -674,8 +705,8 @@
         </div>
       </div>
       <div style="margin-top:16px; display:flex; gap:10px; flex-wrap:wrap">
-        <button class="btn btn-primary" onclick="saveConfig()">💾 Save Configuration</button>
-        <button class="btn btn-outline" onclick="testGreenAPI()" style="color:#25D366;border-color:#25D366">🔌 Test WhatsApp</button>
+        <button class="btn btn-primary" onclick="saveConfig()">üíæ Save Configuration</button>
+        <button class="btn btn-outline" onclick="testGreenAPI()" style="color:#25D366;border-color:#25D366">üîå Test WhatsApp</button>
         <button class="btn btn-outline" onclick="document.getElementById('config-modal').classList.remove('show')">Cancel</button>
       </div>
     </div>
@@ -686,9 +717,9 @@
 <div id="toast-wrap"></div>
 
 <script>
-// ─────────────────────────────────────────────
-//  AUTH — Google Sign-In
-// ─────────────────────────────────────────────
+// ‚îÄ‚îÄ‚îÄ‚îÄ‚îÄ‚îÄ‚îÄ‚îÄ‚îÄ‚îÄ‚îÄ‚îÄ‚îÄ‚îÄ‚îÄ‚îÄ‚îÄ‚îÄ‚îÄ‚îÄ‚îÄ‚îÄ‚îÄ‚îÄ‚îÄ‚îÄ‚îÄ‚îÄ‚îÄ‚îÄ‚îÄ‚îÄ‚îÄ‚îÄ‚îÄ‚îÄ‚îÄ‚îÄ‚îÄ‚îÄ‚îÄ‚îÄ‚îÄ‚îÄ‚îÄ
+//  AUTH ‚Äî Google Sign-In
+// ‚îÄ‚îÄ‚îÄ‚îÄ‚îÄ‚îÄ‚îÄ‚îÄ‚îÄ‚îÄ‚îÄ‚îÄ‚îÄ‚îÄ‚îÄ‚îÄ‚îÄ‚îÄ‚îÄ‚îÄ‚îÄ‚îÄ‚îÄ‚îÄ‚îÄ‚îÄ‚îÄ‚îÄ‚îÄ‚îÄ‚îÄ‚îÄ‚îÄ‚îÄ‚îÄ‚îÄ‚îÄ‚îÄ‚îÄ‚îÄ‚îÄ‚îÄ‚îÄ‚îÄ‚îÄ
 const AUTH = {
   user: null,
   clientId: localStorage.getItem('nhrms_gcid') || ''
@@ -699,7 +730,7 @@ function initGoogleAuth() {
     // Show a placeholder message in the button area
     document.getElementById('google-btn-wrap').innerHTML =
       `<div style="text-align:center;padding:14px;background:#f8faff;border-radius:10px;border:1.5px dashed #c7d2fe;font-size:13px;color:#4f6ef7;cursor:pointer" onclick="toggleSetup()">
-        ⚙️ Configure Google Client ID to enable Sign in with Google
+        ‚öôÔ∏è Configure Google Client ID to enable Sign in with Google
       </div>`;
     return;
   }
@@ -720,14 +751,14 @@ function initGoogleAuth() {
   tryInit();
 }
 
-// ── APPROVAL SYSTEM ──
+// ‚îÄ‚îÄ APPROVAL SYSTEM ‚îÄ‚îÄ
 const APPROVAL_URL = 'https://script.google.com/macros/s/AKfycbzp-_A3DSWuDT6cWMDGW5sZ85a63N_1tdLcMzTRN85NkKasLWjic6SccoOKcZpN27Xp/exec';
 
 async function handleGoogleCredential(response) {
   try {
     const payload = JSON.parse(atob(response.credential.split('.')[1].replace(/-/g,'+').replace(/_/g,'/')));
     AUTH.user = { name: payload.name, email: payload.email, picture: payload.picture, sub: payload.sub };
-    showLoginStatus('Checking access… ⏳');
+    showLoginStatus('Checking access‚Ä¶ ‚è≥');
     await checkApprovalStatus(AUTH.user);
   } catch(e) {
     showLoginError('Sign-in failed. Please try again.');
@@ -749,7 +780,7 @@ async function checkApprovalStatus(user) {
     } else if (data.status === 'rejected') {
       showRejectedScreen(user);
     } else {
-      // First time — register and show pending
+      // First time ‚Äî register and show pending
       await fetch(APPROVAL_URL, {
         method: 'POST',
         body: JSON.stringify({ action: 'register', email: user.email, name: user.name, picture: user.picture || '' })
@@ -768,13 +799,13 @@ function showPendingScreen(user) {
   document.getElementById('login-screen').innerHTML = `
     <div class="login-bg-dots"></div>
     <div class="login-card" style="text-align:center;padding:48px 40px">
-      <div style="font-size:52px;margin-bottom:20px">⏳</div>
+      <div style="font-size:52px;margin-bottom:20px">‚è≥</div>
       <h2 style="font-size:22px;font-weight:800;color:#1e293b;margin-bottom:10px">Awaiting Approval</h2>
       <p style="color:#64748b;font-size:14px;line-height:1.7;margin-bottom:28px">
         Hi <b>${user.name}</b>, your request has been sent to the admin.<br>
         You'll receive an email at <b>${user.email}</b> once approved.
       </p>
-      <button onclick="sessionStorage.clear();location.reload();" style="background:#4f6ef7;color:#fff;border:none;padding:12px 28px;border-radius:8px;font-size:14px;font-weight:600;cursor:pointer">← Sign out</button>
+      <button onclick="sessionStorage.clear();location.reload();" style="background:#4f6ef7;color:#fff;border:none;padding:12px 28px;border-radius:8px;font-size:14px;font-weight:600;cursor:pointer">‚Üê Sign out</button>
     </div>`;
 }
 
@@ -782,13 +813,13 @@ function showRejectedScreen(user) {
   document.getElementById('login-screen').innerHTML = `
     <div class="login-bg-dots"></div>
     <div class="login-card" style="text-align:center;padding:48px 40px">
-      <div style="font-size:52px;margin-bottom:20px">❌</div>
+      <div style="font-size:52px;margin-bottom:20px">‚ùå</div>
       <h2 style="font-size:22px;font-weight:800;color:#ef4444;margin-bottom:10px">Access Not Approved</h2>
       <p style="color:#64748b;font-size:14px;line-height:1.7;margin-bottom:28px">
         Hi <b>${user.name}</b>, your access request was not approved.<br>
         Contact <a href="mailto:krishna@nhrms.com" style="color:#4f6ef7">krishna@nhrms.com</a> for more info.
       </p>
-      <button onclick="sessionStorage.clear();location.reload();" style="background:#ef4444;color:#fff;border:none;padding:12px 28px;border-radius:8px;font-size:14px;font-weight:600;cursor:pointer">← Sign out</button>
+      <button onclick="sessionStorage.clear();location.reload();" style="background:#ef4444;color:#fff;border:none;padding:12px 28px;border-radius:8px;font-size:14px;font-weight:600;cursor:pointer">‚Üê Sign out</button>
     </div>`;
 }
 
@@ -882,9 +913,9 @@ function showLoginError(msg) {
   setTimeout(() => el.classList.remove('show'), 4000);
 }
 
-// ─────────────────────────────────────────────
+// ‚îÄ‚îÄ‚îÄ‚îÄ‚îÄ‚îÄ‚îÄ‚îÄ‚îÄ‚îÄ‚îÄ‚îÄ‚îÄ‚îÄ‚îÄ‚îÄ‚îÄ‚îÄ‚îÄ‚îÄ‚îÄ‚îÄ‚îÄ‚îÄ‚îÄ‚îÄ‚îÄ‚îÄ‚îÄ‚îÄ‚îÄ‚îÄ‚îÄ‚îÄ‚îÄ‚îÄ‚îÄ‚îÄ‚îÄ‚îÄ‚îÄ‚îÄ‚îÄ‚îÄ‚îÄ
 //  STATE
-// ─────────────────────────────────────────────
+// ‚îÄ‚îÄ‚îÄ‚îÄ‚îÄ‚îÄ‚îÄ‚îÄ‚îÄ‚îÄ‚îÄ‚îÄ‚îÄ‚îÄ‚îÄ‚îÄ‚îÄ‚îÄ‚îÄ‚îÄ‚îÄ‚îÄ‚îÄ‚îÄ‚îÄ‚îÄ‚îÄ‚îÄ‚îÄ‚îÄ‚îÄ‚îÄ‚îÄ‚îÄ‚îÄ‚îÄ‚îÄ‚îÄ‚îÄ‚îÄ‚îÄ‚îÄ‚îÄ‚îÄ‚îÄ
 function makeJob(title = 'New Position') {
   return { id: Date.now(), title, jd: '', candidates: [], waSelected: new Set(), chatHistory: [], waCustomMsg: null, inbox: [], conversations: {} };
 }
@@ -894,6 +925,7 @@ const state = {
   activeJobId: null,
   botMode: false,
   botPrompt: '',
+  jdPdf: { text: '', questions: [], fileName: '', loaded: false },
   cfg: {
     claudeKey: '',
     waPhoneId: '',
@@ -910,7 +942,7 @@ function job() {
   return state.jobs.find(j => j.id === state.activeJobId) || state.jobs[0];
 }
 
-// Persist jobs to localStorage (waSelected is a Set — convert to array)
+// Persist jobs to localStorage (waSelected is a Set ‚Äî convert to array)
 function saveJobs() {
   const serialized = state.jobs.map(j => ({
     ...j,
@@ -945,11 +977,15 @@ try {
   state.botMode = bs.botMode || false;
   state.botPrompt = bs.botPrompt || '';
 } catch(e) {}
+try {
+  const jd = JSON.parse(localStorage.getItem('nhrms_jdpdf') || '{}');
+  if (jd.text) state.jdPdf = { text: jd.text, questions: jd.questions || [], fileName: jd.fileName || '', loaded: true };
+} catch(e) {}
 loadJobs();
 
-// ─────────────────────────────────────────────
+// ‚îÄ‚îÄ‚îÄ‚îÄ‚îÄ‚îÄ‚îÄ‚îÄ‚îÄ‚îÄ‚îÄ‚îÄ‚îÄ‚îÄ‚îÄ‚îÄ‚îÄ‚îÄ‚îÄ‚îÄ‚îÄ‚îÄ‚îÄ‚îÄ‚îÄ‚îÄ‚îÄ‚îÄ‚îÄ‚îÄ‚îÄ‚îÄ‚îÄ‚îÄ‚îÄ‚îÄ‚îÄ‚îÄ‚îÄ‚îÄ‚îÄ‚îÄ‚îÄ‚îÄ‚îÄ
 //  MULTI-JOB HELPERS
-// ─────────────────────────────────────────────
+// ‚îÄ‚îÄ‚îÄ‚îÄ‚îÄ‚îÄ‚îÄ‚îÄ‚îÄ‚îÄ‚îÄ‚îÄ‚îÄ‚îÄ‚îÄ‚îÄ‚îÄ‚îÄ‚îÄ‚îÄ‚îÄ‚îÄ‚îÄ‚îÄ‚îÄ‚îÄ‚îÄ‚îÄ‚îÄ‚îÄ‚îÄ‚îÄ‚îÄ‚îÄ‚îÄ‚îÄ‚îÄ‚îÄ‚îÄ‚îÄ‚îÄ‚îÄ‚îÄ‚îÄ‚îÄ
 function renderJobSelect() {
   const sel = document.getElementById('job-select');
   if (!sel) return;
@@ -977,14 +1013,14 @@ function createNewJob() {
   renderJobSelect();
   updateBadges();
   navigate('setup');
-  toast(`✅ Created: ${j.title}`);
+  toast(`‚úÖ Created: ${j.title}`);
 }
 
-// ─────────────────────────────────────────────
+// ‚îÄ‚îÄ‚îÄ‚îÄ‚îÄ‚îÄ‚îÄ‚îÄ‚îÄ‚îÄ‚îÄ‚îÄ‚îÄ‚îÄ‚îÄ‚îÄ‚îÄ‚îÄ‚îÄ‚îÄ‚îÄ‚îÄ‚îÄ‚îÄ‚îÄ‚îÄ‚îÄ‚îÄ‚îÄ‚îÄ‚îÄ‚îÄ‚îÄ‚îÄ‚îÄ‚îÄ‚îÄ‚îÄ‚îÄ‚îÄ‚îÄ‚îÄ‚îÄ‚îÄ‚îÄ
 //  NAVIGATION
-// ─────────────────────────────────────────────
+// ‚îÄ‚îÄ‚îÄ‚îÄ‚îÄ‚îÄ‚îÄ‚îÄ‚îÄ‚îÄ‚îÄ‚îÄ‚îÄ‚îÄ‚îÄ‚îÄ‚îÄ‚îÄ‚îÄ‚îÄ‚îÄ‚îÄ‚îÄ‚îÄ‚îÄ‚îÄ‚îÄ‚îÄ‚îÄ‚îÄ‚îÄ‚îÄ‚îÄ‚îÄ‚îÄ‚îÄ‚îÄ‚îÄ‚îÄ‚îÄ‚îÄ‚îÄ‚îÄ‚îÄ‚îÄ
 const views = { setup: renderSetup, candidates: renderCandidates, chat: renderChat, whatsapp: renderWhatsApp, calendar: renderCalendar, admin: renderAdmin };
-const pageTitles = { setup: 'Setup', candidates: 'Candidates', chat: 'AI Screener', whatsapp: 'WhatsApp Outreach', calendar: 'Schedule Interviews', admin: 'Admin · User Management' };
+const pageTitles = { setup: 'Setup', candidates: 'Candidates', chat: 'AI Screener', whatsapp: 'WhatsApp Outreach', calendar: 'Schedule Interviews', admin: 'Admin ¬∑ User Management' };
 
 function navigate(view) {
   document.querySelectorAll('.nav-item').forEach(el => el.classList.toggle('active', el.dataset.view === view));
@@ -998,16 +1034,16 @@ document.querySelectorAll('.nav-item').forEach(el => {
   el.addEventListener('click', () => navigate(el.dataset.view));
 });
 
-// ─────────────────────────────────────────────
+// ‚îÄ‚îÄ‚îÄ‚îÄ‚îÄ‚îÄ‚îÄ‚îÄ‚îÄ‚îÄ‚îÄ‚îÄ‚îÄ‚îÄ‚îÄ‚îÄ‚îÄ‚îÄ‚îÄ‚îÄ‚îÄ‚îÄ‚îÄ‚îÄ‚îÄ‚îÄ‚îÄ‚îÄ‚îÄ‚îÄ‚îÄ‚îÄ‚îÄ‚îÄ‚îÄ‚îÄ‚îÄ‚îÄ‚îÄ‚îÄ‚îÄ‚îÄ‚îÄ‚îÄ‚îÄ
 //  SETUP VIEW
-// ─────────────────────────────────────────────
+// ‚îÄ‚îÄ‚îÄ‚îÄ‚îÄ‚îÄ‚îÄ‚îÄ‚îÄ‚îÄ‚îÄ‚îÄ‚îÄ‚îÄ‚îÄ‚îÄ‚îÄ‚îÄ‚îÄ‚îÄ‚îÄ‚îÄ‚îÄ‚îÄ‚îÄ‚îÄ‚îÄ‚îÄ‚îÄ‚îÄ‚îÄ‚îÄ‚îÄ‚îÄ‚îÄ‚îÄ‚îÄ‚îÄ‚îÄ‚îÄ‚îÄ‚îÄ‚îÄ‚îÄ‚îÄ
 function renderSetup() {
   const content = document.getElementById('content');
   content.innerHTML = `
   <div class="setup-grid">
     <div class="card">
       <div class="card-header">
-        <div class="card-icon" style="background:#eff6ff">📄</div>
+        <div class="card-icon" style="background:#eff6ff">üìÑ</div>
         <div>
           <h3>Upload Candidates CSV</h3>
           <p>CSV should include: Name, Phone, Email, Role, Experience, Skills</p>
@@ -1015,12 +1051,12 @@ function renderSetup() {
       </div>
       <div class="card-body">
         <div class="upload-zone" id="csv-drop" onclick="document.getElementById('csv-file-input').click()">
-          <div class="upload-icon">📊</div>
+          <div class="upload-icon">üìä</div>
           <p><strong>Click to upload</strong> or drag & drop</p>
           <p style="margin-top:4px; font-size:12px;">CSV files only</p>
         </div>
         <input type="file" id="csv-file-input" accept=".csv" style="display:none" onchange="loadCSV(this.files[0])" />
-        <div class="upload-status" id="csv-status">✅ <span id="csv-status-text"></span></div>
+        <div class="upload-status" id="csv-status">‚úÖ <span id="csv-status-text"></span></div>
         <div style="margin-top:12px; font-size:12.5px; color:var(--text-muted);">
           <strong>Sample columns:</strong> Name, Phone, Email, Current_Role, Years_Experience, Skills, Location, LinkedIn
         </div>
@@ -1029,10 +1065,10 @@ function renderSetup() {
 
     <div class="card">
       <div class="card-header">
-        <div class="card-icon" style="background:#f0fdf4">📋</div>
+        <div class="card-icon" style="background:#f0fdf4">üìã</div>
         <div>
           <h3>Job Description</h3>
-          <p>Paste the JD — AI will screen candidates against this</p>
+          <p>Paste the JD ‚Äî AI will screen candidates against this</p>
         </div>
       </div>
       <div class="card-body">
@@ -1044,14 +1080,14 @@ function renderSetup() {
         </div>
         <textarea class="jd-input" id="jd-input" placeholder="Paste your Job Description here...
 E.g.: We are hiring a Senior Full-Stack Engineer with 5+ years experience in React, Node.js, and PostgreSQL. Must have experience with cloud platforms (AWS/GCP). Strong communication skills required...">${job().jd}</textarea>
-        <button class="btn btn-primary" style="margin-top:10px; width:100%" onclick="saveJD()">✅ Save Job Description</button>
+        <button class="btn btn-primary" style="margin-top:10px; width:100%" onclick="saveJD()">‚úÖ Save Job Description</button>
       </div>
     </div>
   </div>
 
   <div class="card" style="margin-bottom:20px">
     <div class="card-header">
-      <div class="card-icon" style="background:#fdf4ff">🔑</div>
+      <div class="card-icon" style="background:#fdf4ff">üîë</div>
       <div>
         <h3>Quick API Setup</h3>
         <p>Configure your Claude API key and WhatsApp credentials</p>
@@ -1072,20 +1108,20 @@ E.g.: We are hiring a Senior Full-Stack Engineer with 5+ years experience in Rea
           <input type="text" id="quick-name" placeholder="Sai Krishna" value="${state.cfg.recruiterName}" oninput="state.cfg.recruiterName=this.value" />
         </div>
       </div>
-      <button class="btn btn-primary" style="margin-top:8px" onclick="saveConfig()">💾 Save All Settings</button>
+      <button class="btn btn-primary" style="margin-top:8px" onclick="saveConfig()">üíæ Save All Settings</button>
     </div>
   </div>
 
   <div class="card">
     <div class="card-header">
-      <div class="card-icon" style="background:#fffbeb">🚀</div>
+      <div class="card-icon" style="background:#fffbeb">üöÄ</div>
       <div><h3>Getting Started</h3><p>Follow these steps to screen candidates</p></div>
     </div>
     <div class="card-body">
       <div style="display:grid; grid-template-columns:repeat(5,1fr); gap:12px; margin-top:4px">
         ${['1. Upload CSV', '2. Paste JD', '3. AI Screens Candidates', '4. WhatsApp Shortlisted', '5. Book Interviews via Topmate'].map((s,i) => `
           <div style="text-align:center; padding:16px 10px; background:#f8faff; border-radius:10px; border:1.5px solid #e8ecff">
-            <div style="font-size:24px; margin-bottom:8px">${['📊','📋','🧠','💬','📅'][i]}</div>
+            <div style="font-size:24px; margin-bottom:8px">${['üìä','üìã','üß†','üí¨','üìÖ'][i]}</div>
             <div style="font-size:12.5px; font-weight:600; color:var(--text)">${s}</div>
           </div>
         `).join('')}
@@ -1109,12 +1145,12 @@ function saveJD() {
   job().jd = document.getElementById('jd-input').value.trim();
   if (!job().jd) { toast('Please enter a Job Description', 'error'); return; }
   saveJobs();
-  toast('Job Description saved ✅');
+  toast('Job Description saved ‚úÖ');
 }
 
-// ─────────────────────────────────────────────
+// ‚îÄ‚îÄ‚îÄ‚îÄ‚îÄ‚îÄ‚îÄ‚îÄ‚îÄ‚îÄ‚îÄ‚îÄ‚îÄ‚îÄ‚îÄ‚îÄ‚îÄ‚îÄ‚îÄ‚îÄ‚îÄ‚îÄ‚îÄ‚îÄ‚îÄ‚îÄ‚îÄ‚îÄ‚îÄ‚îÄ‚îÄ‚îÄ‚îÄ‚îÄ‚îÄ‚îÄ‚îÄ‚îÄ‚îÄ‚îÄ‚îÄ‚îÄ‚îÄ‚îÄ‚îÄ
 //  CSV PARSING
-// ─────────────────────────────────────────────
+// ‚îÄ‚îÄ‚îÄ‚îÄ‚îÄ‚îÄ‚îÄ‚îÄ‚îÄ‚îÄ‚îÄ‚îÄ‚îÄ‚îÄ‚îÄ‚îÄ‚îÄ‚îÄ‚îÄ‚îÄ‚îÄ‚îÄ‚îÄ‚îÄ‚îÄ‚îÄ‚îÄ‚îÄ‚îÄ‚îÄ‚îÄ‚îÄ‚îÄ‚îÄ‚îÄ‚îÄ‚îÄ‚îÄ‚îÄ‚îÄ‚îÄ‚îÄ‚îÄ‚îÄ‚îÄ
 function loadCSV(file) {
   if (!file) return;
   const reader = new FileReader();
@@ -1142,19 +1178,19 @@ function loadCSV(file) {
       status.classList.add('show');
       document.getElementById('csv-status-text').textContent = `${job().candidates.length} candidates loaded from ${file.name}`;
     }
-    toast(`✅ ${job().candidates.length} candidates loaded`);
+    toast(`‚úÖ ${job().candidates.length} candidates loaded`);
     document.getElementById('topbar-action-btn').style.display = '';
   };
   reader.readAsText(file);
 }
 
-// ─────────────────────────────────────────────
+// ‚îÄ‚îÄ‚îÄ‚îÄ‚îÄ‚îÄ‚îÄ‚îÄ‚îÄ‚îÄ‚îÄ‚îÄ‚îÄ‚îÄ‚îÄ‚îÄ‚îÄ‚îÄ‚îÄ‚îÄ‚îÄ‚îÄ‚îÄ‚îÄ‚îÄ‚îÄ‚îÄ‚îÄ‚îÄ‚îÄ‚îÄ‚îÄ‚îÄ‚îÄ‚îÄ‚îÄ‚îÄ‚îÄ‚îÄ‚îÄ‚îÄ‚îÄ‚îÄ‚îÄ‚îÄ
 //  CANDIDATES VIEW
-// ─────────────────────────────────────────────
+// ‚îÄ‚îÄ‚îÄ‚îÄ‚îÄ‚îÄ‚îÄ‚îÄ‚îÄ‚îÄ‚îÄ‚îÄ‚îÄ‚îÄ‚îÄ‚îÄ‚îÄ‚îÄ‚îÄ‚îÄ‚îÄ‚îÄ‚îÄ‚îÄ‚îÄ‚îÄ‚îÄ‚îÄ‚îÄ‚îÄ‚îÄ‚îÄ‚îÄ‚îÄ‚îÄ‚îÄ‚îÄ‚îÄ‚îÄ‚îÄ‚îÄ‚îÄ‚îÄ‚îÄ‚îÄ
 function renderCandidates() {
   const content = document.getElementById('content');
   if (!job().candidates.length) {
-    content.innerHTML = `<div class="empty-state"><div class="empty-icon">📭</div><p>No candidates yet. Upload a CSV in Setup.</p></div>`;
+    content.innerHTML = `<div class="empty-state"><div class="empty-icon">üì≠</div><p>No candidates yet. Upload a CSV in Setup.</p></div>`;
     return;
   }
 
@@ -1174,14 +1210,14 @@ function renderCandidates() {
 
   <div class="card">
     <div style="padding:14px 18px; display:flex; align-items:center; gap:12px; border-bottom:1px solid var(--border)">
-      <input type="text" id="cand-search" placeholder="🔍  Search candidates..." style="flex:1; border:1.5px solid var(--border); border-radius:8px; padding:8px 12px; font-size:13.5px; outline:none; font-family:inherit" oninput="filterCandidates()" />
+      <input type="text" id="cand-search" placeholder="üîç  Search candidates..." style="flex:1; border:1.5px solid var(--border); border-radius:8px; padding:8px 12px; font-size:13.5px; outline:none; font-family:inherit" oninput="filterCandidates()" />
       <select id="cand-filter" style="border:1.5px solid var(--border); border-radius:8px; padding:8px 12px; font-size:13.5px; outline:none; font-family:inherit; cursor:pointer" onchange="filterCandidates()">
         <option value="all">All Status</option>
         <option value="new">New</option>
         <option value="shortlisted">Shortlisted</option>
         <option value="rejected">Rejected</option>
       </select>
-      <button class="btn btn-primary btn-sm" onclick="runAIScreening()">🧠 Run AI Screening</button>
+      <button class="btn btn-primary btn-sm" onclick="runAIScreening()">üß† Run AI Screening</button>
     </div>
     <div class="table-wrap">
       <table>
@@ -1223,7 +1259,7 @@ function candidateRow(c) {
   if (score >= 75) scoreFillClass = 'high';
   else if (score < 50) scoreFillClass = 'low';
   const statusMap = { new: 'badge-new', shortlisted: 'badge-shortlisted', rejected: 'badge-rejected', messaged: 'badge-messaged' };
-  const statusLabel = { new: '● New', shortlisted: '✓ Shortlisted', rejected: '✗ Rejected', messaged: '💬 Messaged' };
+  const statusLabel = { new: '‚óè New', shortlisted: '‚úì Shortlisted', rejected: '‚úó Rejected', messaged: 'üí¨ Messaged' };
   return `
   <tr>
     <td>
@@ -1231,11 +1267,11 @@ function candidateRow(c) {
       <div class="candidate-role">${escHtml(c.location || '')}</div>
     </td>
     <td>
-      <div style="font-size:12.5px">${escHtml(c.phone || '—')}</div>
+      <div style="font-size:12.5px">${escHtml(c.phone || '‚Äî')}</div>
       <div style="font-size:12px; color:var(--text-muted)">${escHtml(c.email || '')}</div>
     </td>
     <td>
-      <div style="font-size:13px; font-weight:600">${escHtml(c.role || '—')}</div>
+      <div style="font-size:13px; font-weight:600">${escHtml(c.role || '‚Äî')}</div>
       <div style="font-size:12px; color:var(--text-muted)">${escHtml(c.experience ? c.experience + ' yrs' : '')}</div>
     </td>
     <td style="max-width:180px">
@@ -1247,14 +1283,14 @@ function candidateRow(c) {
           <div class="score-bar"><div class="score-fill ${scoreFillClass}" style="width:${score}%"></div></div>
           <span style="font-size:12.5px; font-weight:700">${score}%</span>
         </div>
-        <div style="font-size:11.5px; color:var(--text-muted); margin-top:3px; max-width:150px; line-height:1.4">${escHtml(c.scoreReason?.slice(0,60) || '')}${c.scoreReason?.length > 60 ? '…' : ''}</div>
+        <div style="font-size:11.5px; color:var(--text-muted); margin-top:3px; max-width:150px; line-height:1.4">${escHtml(c.scoreReason?.slice(0,60) || '')}${c.scoreReason?.length > 60 ? '‚Ä¶' : ''}</div>
       ` : '<span style="font-size:12px; color:var(--text-muted)">Not screened</span>'}
     </td>
     <td><span class="badge ${statusMap[c.status] || 'badge-pending'}">${statusLabel[c.status] || c.status}</span></td>
     <td>
       <div style="display:flex; gap:6px; flex-wrap:wrap">
-        <button class="btn btn-sm" style="background:var(--success-light); color:#166534; border:1.5px solid #bbf7d0" onclick="setStatus(${c.id}, 'shortlisted')">✓ Shortlist</button>
-        <button class="btn btn-sm" style="background:#f1f5f9; color:var(--text-muted); border:1.5px solid var(--border)" onclick="setStatus(${c.id}, 'rejected')">✗ Reject</button>
+        <button class="btn btn-sm" style="background:var(--success-light); color:#166534; border:1.5px solid #bbf7d0" onclick="setStatus(${c.id}, 'shortlisted')">‚úì Shortlist</button>
+        <button class="btn btn-sm" style="background:#f1f5f9; color:var(--text-muted); border:1.5px solid var(--border)" onclick="setStatus(${c.id}, 'rejected')">‚úó Reject</button>
       </div>
     </td>
   </tr>`;
@@ -1265,15 +1301,15 @@ function setStatus(id, status) {
   if (c) { c.status = status; updateBadges(); filterCandidates(); }
 }
 
-// ─────────────────────────────────────────────
+// ‚îÄ‚îÄ‚îÄ‚îÄ‚îÄ‚îÄ‚îÄ‚îÄ‚îÄ‚îÄ‚îÄ‚îÄ‚îÄ‚îÄ‚îÄ‚îÄ‚îÄ‚îÄ‚îÄ‚îÄ‚îÄ‚îÄ‚îÄ‚îÄ‚îÄ‚îÄ‚îÄ‚îÄ‚îÄ‚îÄ‚îÄ‚îÄ‚îÄ‚îÄ‚îÄ‚îÄ‚îÄ‚îÄ‚îÄ‚îÄ‚îÄ‚îÄ‚îÄ‚îÄ‚îÄ
 //  AI SCREENING
-// ─────────────────────────────────────────────
+// ‚îÄ‚îÄ‚îÄ‚îÄ‚îÄ‚îÄ‚îÄ‚îÄ‚îÄ‚îÄ‚îÄ‚îÄ‚îÄ‚îÄ‚îÄ‚îÄ‚îÄ‚îÄ‚îÄ‚îÄ‚îÄ‚îÄ‚îÄ‚îÄ‚îÄ‚îÄ‚îÄ‚îÄ‚îÄ‚îÄ‚îÄ‚îÄ‚îÄ‚îÄ‚îÄ‚îÄ‚îÄ‚îÄ‚îÄ‚îÄ‚îÄ‚îÄ‚îÄ‚îÄ‚îÄ
 async function runAIScreening() {
   if (!state.cfg.claudeKey) { document.getElementById('config-modal').classList.add('show'); toast('Please add your Claude API key first', 'error'); return; }
   if (!job().jd) { toast('Please add a Job Description first', 'error'); navigate('setup'); return; }
   if (!job().candidates.length) { toast('No candidates loaded', 'error'); return; }
 
-  toast('🧠 AI screening started...');
+  toast('üß† AI screening started...');
   navigate('candidates');
 
   const unscreened = job().candidates.filter(c => c.score === null);
@@ -1316,16 +1352,16 @@ Rules:
     updateBadges();
     filterCandidates();
     const sl = scores.filter(s => s.status === 'shortlisted').length;
-    toast(`✅ Screened ${scores.length} candidates — ${sl} shortlisted!`, 'success');
+    toast(`‚úÖ Screened ${scores.length} candidates ‚Äî ${sl} shortlisted!`, 'success');
   } catch (err) {
     toast('AI screening failed: ' + err.message, 'error');
     console.error(err);
   }
 }
 
-// ─────────────────────────────────────────────
+// ‚îÄ‚îÄ‚îÄ‚îÄ‚îÄ‚îÄ‚îÄ‚îÄ‚îÄ‚îÄ‚îÄ‚îÄ‚îÄ‚îÄ‚îÄ‚îÄ‚îÄ‚îÄ‚îÄ‚îÄ‚îÄ‚îÄ‚îÄ‚îÄ‚îÄ‚îÄ‚îÄ‚îÄ‚îÄ‚îÄ‚îÄ‚îÄ‚îÄ‚îÄ‚îÄ‚îÄ‚îÄ‚îÄ‚îÄ‚îÄ‚îÄ‚îÄ‚îÄ‚îÄ‚îÄ
 //  CHAT VIEW
-// ─────────────────────────────────────────────
+// ‚îÄ‚îÄ‚îÄ‚îÄ‚îÄ‚îÄ‚îÄ‚îÄ‚îÄ‚îÄ‚îÄ‚îÄ‚îÄ‚îÄ‚îÄ‚îÄ‚îÄ‚îÄ‚îÄ‚îÄ‚îÄ‚îÄ‚îÄ‚îÄ‚îÄ‚îÄ‚îÄ‚îÄ‚îÄ‚îÄ‚îÄ‚îÄ‚îÄ‚îÄ‚îÄ‚îÄ‚îÄ‚îÄ‚îÄ‚îÄ‚îÄ‚îÄ‚îÄ‚îÄ‚îÄ
 function renderChat() {
   const content = document.getElementById('content');
   const shortlisted = job().candidates.filter(c => c.status === 'shortlisted');
@@ -1334,28 +1370,28 @@ function renderChat() {
   <div class="chat-layout">
     <div class="chat-panel">
       <div class="chat-header">
-        <div class="ai-avatar">🧠</div>
+        <div class="ai-avatar">üß†</div>
         <div>
           <h3>Claude AI Screener</h3>
-          <p>${job().candidates.length} candidates · ${shortlisted.length} shortlisted · ${job().jd ? 'JD loaded ✓' : 'No JD — add in Setup'}</p>
+          <p>${job().candidates.length} candidates ¬∑ ${shortlisted.length} shortlisted ¬∑ ${job().jd ? 'JD loaded ‚úì' : 'No JD ‚Äî add in Setup'}</p>
         </div>
       </div>
       <div class="quick-actions" id="quick-actions">
-        <div class="quick-chip" onclick="quickAsk('Shortlist top 5 candidates for this role')">🏆 Top 5</div>
-        <div class="quick-chip" onclick="quickAsk('Who has the most relevant skills for this JD?')">🎯 Best match</div>
-        <div class="quick-chip" onclick="quickAsk('Which candidates have 5+ years experience?')">⏱️ 5+ years</div>
-        <div class="quick-chip" onclick="quickAsk('Summarize all shortlisted candidates')">📝 Shortlist summary</div>
-        <div class="quick-chip" onclick="quickAsk('Which candidates should be rejected and why?')">❌ Rejections</div>
-        <div class="quick-chip" onclick="quickAsk('Generate interview questions for the top candidates')">💡 Interview Qs</div>
+        <div class="quick-chip" onclick="quickAsk('Shortlist top 5 candidates for this role')">üèÜ Top 5</div>
+        <div class="quick-chip" onclick="quickAsk('Who has the most relevant skills for this JD?')">üéØ Best match</div>
+        <div class="quick-chip" onclick="quickAsk('Which candidates have 5+ years experience?')">‚è±Ô∏è 5+ years</div>
+        <div class="quick-chip" onclick="quickAsk('Summarize all shortlisted candidates')">üìù Shortlist summary</div>
+        <div class="quick-chip" onclick="quickAsk('Which candidates should be rejected and why?')">‚ùå Rejections</div>
+        <div class="quick-chip" onclick="quickAsk('Generate interview questions for the top candidates')">üí° Interview Qs</div>
       </div>
       <div class="chat-messages" id="chat-msgs">
         ${job().chatHistory.length === 0 ? `
         <div class="msg ai">
-          <div class="msg-avatar">🧠</div>
+          <div class="msg-avatar">üß†</div>
           <div>
             <div class="msg-bubble">
-              👋 Hi! I'm your AI recruiting assistant. I have access to <strong>${job().candidates.length} candidates</strong> and your JD.
-              <br><br>Ask me anything — I can shortlist candidates, compare profiles, generate interview questions, or analyze skill gaps. Try one of the quick actions above!
+              üëã Hi! I'm your AI recruiting assistant. I have access to <strong>${job().candidates.length} candidates</strong> and your JD.
+              <br><br>Ask me anything ‚Äî I can shortlist candidates, compare profiles, generate interview questions, or analyze skill gaps. Try one of the quick actions above!
             </div>
             <span class="msg-time">Now</span>
           </div>
@@ -1364,29 +1400,29 @@ function renderChat() {
       <div class="chat-input-wrap">
         <textarea class="chat-input" id="chat-input" rows="1" placeholder="Ask about candidates, shortlisting, interview prep..." onkeydown="chatKeyDown(event)"></textarea>
         <button class="btn btn-primary" id="send-btn" onclick="sendChat()" style="align-self:flex-end; padding:10px 18px">
-          ➤ Send
+          ‚û§ Send
         </button>
       </div>
     </div>
 
     <div class="shortlist-sidebar">
       <div class="shortlist-header">
-        <h4>⭐ Shortlisted (${shortlisted.length})</h4>
+        <h4>‚≠ê Shortlisted (${shortlisted.length})</h4>
         <p>AI-screened top candidates</p>
       </div>
       <div class="shortlist-items">
         ${shortlisted.length === 0 ? `
         <div style="text-align:center; padding:30px 16px; color:var(--text-muted)">
-          <div style="font-size:32px; margin-bottom:8px">🔍</div>
+          <div style="font-size:32px; margin-bottom:8px">üîç</div>
           <p style="font-size:13px">Run AI Screening on the Candidates tab to shortlist profiles</p>
         </div>` : shortlisted.map(c => `
         <div class="shortlist-card">
           <div class="sc-name">${escHtml(c.name)}</div>
-          <div class="sc-role">${escHtml(c.role)} · ${escHtml(c.experience || '?')} yrs</div>
-          ${c.score ? `<div class="sc-score">⭐ ${c.score}% match</div>` : ''}
+          <div class="sc-role">${escHtml(c.role)} ¬∑ ${escHtml(c.experience || '?')} yrs</div>
+          ${c.score ? `<div class="sc-score">‚≠ê ${c.score}% match</div>` : ''}
           <div class="sc-actions">
             <button class="btn btn-sm btn-wa" onclick="quickAsk('Tell me more about ${escHtml(c.name)} and why they are a good fit')">Ask AI</button>
-            <button class="btn btn-sm btn-outline" onclick="navigate('whatsapp')">💬 WA</button>
+            <button class="btn btn-sm btn-outline" onclick="navigate('whatsapp')">üí¨ WA</button>
           </div>
         </div>`).join('')}
       </div>
@@ -1396,7 +1432,7 @@ function renderChat() {
 
 function renderMsg(m) {
   return `<div class="msg ${m.role}">
-    <div class="msg-avatar">${m.role === 'ai' ? '🧠' : '👤'}</div>
+    <div class="msg-avatar">${m.role === 'ai' ? 'üß†' : 'üë§'}</div>
     <div>
       <div class="msg-bubble">${m.role === 'ai' ? formatAIText(m.content) : escHtml(m.content)}</div>
       <span class="msg-time">${m.time}</span>
@@ -1409,7 +1445,7 @@ function formatAIText(text) {
   return escHtml(text)
     .replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>')
     .replace(/\n/g, '<br>')
-    .replace(/^- (.+)/gm, '• $1');
+    .replace(/^- (.+)/gm, '‚Ä¢ $1');
 }
 
 function chatKeyDown(e) {
@@ -1437,7 +1473,7 @@ async function sendChat() {
   // typing indicator
   const typingId = 'typing-' + Date.now();
   msgs.innerHTML += `<div class="msg ai" id="${typingId}">
-    <div class="msg-avatar">🧠</div>
+    <div class="msg-avatar">üß†</div>
     <div><div class="msg-bubble"><div class="typing-dots"><span></span><span></span><span></span></div></div></div>
   </div>`;
   msgs.scrollTop = msgs.scrollHeight;
@@ -1476,29 +1512,29 @@ Rules:
     msgs.innerHTML += renderMsg({ role: 'ai', content: reply, time: aiTime });
   } catch (err) {
     document.getElementById(typingId)?.remove();
-    msgs.innerHTML += renderMsg({ role: 'ai', content: '❌ Error: ' + err.message + '. Check your API key in Settings.', time: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) });
+    msgs.innerHTML += renderMsg({ role: 'ai', content: '‚ùå Error: ' + err.message + '. Check your API key in Settings.', time: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) });
   }
 
   msgs.scrollTop = msgs.scrollHeight;
   document.getElementById('send-btn').disabled = false;
 }
 
-// ─────────────────────────────────────────────
+// ‚îÄ‚îÄ‚îÄ‚îÄ‚îÄ‚îÄ‚îÄ‚îÄ‚îÄ‚îÄ‚îÄ‚îÄ‚îÄ‚îÄ‚îÄ‚îÄ‚îÄ‚îÄ‚îÄ‚îÄ‚îÄ‚îÄ‚îÄ‚îÄ‚îÄ‚îÄ‚îÄ‚îÄ‚îÄ‚îÄ‚îÄ‚îÄ‚îÄ‚îÄ‚îÄ‚îÄ‚îÄ‚îÄ‚îÄ‚îÄ‚îÄ‚îÄ‚îÄ‚îÄ‚îÄ
 //  WHATSAPP VIEW
-// ─────────────────────────────────────────────
+// ‚îÄ‚îÄ‚îÄ‚îÄ‚îÄ‚îÄ‚îÄ‚îÄ‚îÄ‚îÄ‚îÄ‚îÄ‚îÄ‚îÄ‚îÄ‚îÄ‚îÄ‚îÄ‚îÄ‚îÄ‚îÄ‚îÄ‚îÄ‚îÄ‚îÄ‚îÄ‚îÄ‚îÄ‚îÄ‚îÄ‚îÄ‚îÄ‚îÄ‚îÄ‚îÄ‚îÄ‚îÄ‚îÄ‚îÄ‚îÄ‚îÄ‚îÄ‚îÄ‚îÄ‚îÄ
 const WA_TEMPLATES = {
   shortlist: (c, cfg) =>
-`Hi ${c.name.split(' ')[0]} 👋,
+`Hi ${c.name.split(' ')[0]} üëã,
 
 Hope you're doing well! I'm ${cfg.recruiterName} from NHRMS.
 
 We reviewed your profile and are excited to share that you've been *shortlisted* for a position that looks like a great match:
 
-📌 *Role*: ${cfg.jdTitle || 'Open Position'}
-📍 *Type*: Full-time
+üìå *Role*: ${cfg.jdTitle || 'Open Position'}
+üìç *Type*: Full-time
 
 We'd love to connect for a quick 20-min chat. Feel free to book a slot here:
-🗓️ ${cfg.topmateLink}
+üóìÔ∏è ${cfg.topmateLink}
 
 Looking forward to speaking with you!
 
@@ -1511,7 +1547,7 @@ ${cfg.recruiterName} | NHRMS`,
 Just following up on my earlier message about the ${cfg.jdTitle || 'position'} at NHRMS.
 
 If you're interested, do grab a slot on my calendar:
-🗓️ ${cfg.topmateLink}
+üóìÔ∏è ${cfg.topmateLink}
 
 Let me know if you have any questions!
 
@@ -1519,13 +1555,13 @@ Regards,
 ${cfg.recruiterName}`,
 
   info: (c, cfg) =>
-`Hi ${c.name.split(' ')[0]} 👋,
+`Hi ${c.name.split(' ')[0]} üëã,
 
 I came across your profile and thought you'd be a great fit for a role we're currently hiring for.
 
 *Role:* ${cfg.jdTitle || 'Open Position'}
 
-Interested in learning more? Happy to share details — just reply here!
+Interested in learning more? Happy to share details ‚Äî just reply here!
 
 Best,
 ${cfg.recruiterName} | NHRMS`
@@ -1533,7 +1569,7 @@ ${cfg.recruiterName} | NHRMS`
 
 let activeTemplate = 'shortlist';
 
-// ── template helper: convert function to editable string with {name} placeholders ──
+// ‚îÄ‚îÄ template helper: convert function to editable string with {name} placeholders ‚îÄ‚îÄ
 function templateToStr(key, cfg) {
   const dummy = { name: '{name}', role: '{role}', score: '' };
   return WA_TEMPLATES[key](dummy, {
@@ -1544,7 +1580,7 @@ function templateToStr(key, cfg) {
   });
 }
 
-// ── substitute {vars} at send time ──
+// ‚îÄ‚îÄ substitute {vars} at send time ‚îÄ‚îÄ
 function applyVars(tpl, c, cfg) {
   return tpl
     .replace(/\{name\}/g, (c.name || 'Candidate').split(' ')[0])
@@ -1560,23 +1596,23 @@ function getGreenApiHost() {
     `https://${String(state.cfg.greenInstance).slice(0,4)}.api.greenapi.com`;
 }
 
-// ── Test Green API connection ──
+// ‚îÄ‚îÄ Test Green API connection ‚îÄ‚îÄ
 async function testGreenAPI() {
   const inst = document.getElementById('cfg-green-instance')?.value || state.cfg.greenInstance;
   const tok  = document.getElementById('cfg-green-token')?.value  || state.cfg.greenToken;
   if (!inst || !tok) { toast('Enter Instance ID and Token first', 'error'); return; }
   const host = `https://${String(inst).slice(0,4)}.api.greenapi.com`;
   try {
-    toast('Testing connection…');
+    toast('Testing connection‚Ä¶');
     const res = await fetch(`${host}/waInstance${inst}/getStateInstance/${tok}`);
     const data = await res.json();
     if (data.stateInstance === 'authorized') {
-      toast('✅ WhatsApp connected & authorized!', 'success');
+      toast('‚úÖ WhatsApp connected & authorized!', 'success');
     } else {
-      toast(`⚠️ State: ${data.stateInstance || JSON.stringify(data)}`, 'error');
+      toast(`‚ö†Ô∏è State: ${data.stateInstance || JSON.stringify(data)}`, 'error');
     }
   } catch(e) {
-    toast(`❌ Connection failed: ${e.message}`, 'error');
+    toast(`‚ùå Connection failed: ${e.message}`, 'error');
   }
 }
 
@@ -1587,7 +1623,7 @@ function renderWhatsApp() {
   const hasBot = !!(state.cfg.greenInstance && state.cfg.greenToken);
 
   if (!shortlisted.length) {
-    content.innerHTML = `<div class="empty-state"><div class="empty-icon">💬</div><p>No candidates to message. Run AI Screening first or upload candidates.</p></div>`;
+    content.innerHTML = `<div class="empty-state"><div class="empty-icon">üí¨</div><p>No candidates to message. Run AI Screening first or upload candidates.</p></div>`;
     return;
   }
 
@@ -1613,14 +1649,14 @@ function renderWhatsApp() {
         ${shortlisted.map(c => `
         <div class="wa-card">
           <div class="wa-check ${job().waSelected.has(c.id) ? 'checked' : ''}" id="wa-check-${c.id}" onclick="toggleWA(${c.id})">
-            ${job().waSelected.has(c.id) ? '✓' : ''}
+            ${job().waSelected.has(c.id) ? '‚úì' : ''}
           </div>
           <div class="wa-info">
             <div class="wa-name">${escHtml(c.name)}</div>
-            <div class="wa-phone">${escHtml(c.phone || 'No phone on file')} · ${escHtml(c.role || '')}</div>
+            <div class="wa-phone">${escHtml(c.phone || 'No phone on file')} ¬∑ ${escHtml(c.role || '')}</div>
           </div>
-          ${c.score ? `<div style="font-size:12px; font-weight:700; color:var(--success)">⭐ ${c.score}%</div>` : ''}
-          <span class="badge ${c.status === 'shortlisted' ? 'badge-shortlisted' : c.status === 'messaged' ? 'badge-messaged' : 'badge-new'}">${c.status === 'messaged' ? '✓ Sent' : c.status}</span>
+          ${c.score ? `<div style="font-size:12px; font-weight:700; color:var(--success)">‚≠ê ${c.score}%</div>` : ''}
+          <span class="badge ${c.status === 'shortlisted' ? 'badge-shortlisted' : c.status === 'messaged' ? 'badge-messaged' : 'badge-new'}">${c.status === 'messaged' ? '‚úì Sent' : c.status}</span>
         </div>`).join('')}
       </div>
 
@@ -1628,18 +1664,18 @@ function renderWhatsApp() {
       ${hasBot ? `
       <div class="card" style="margin-top:16px">
         <div class="card-header" style="cursor:pointer" onclick="this.nextElementSibling.style.display=this.nextElementSibling.style.display==='none'?'block':'none'">
-          <div class="card-icon" style="background:#dcfce7">📥</div>
+          <div class="card-icon" style="background:#dcfce7">üì•</div>
           <div style="flex:1">
-            <h3>Inbox — Candidate Replies</h3>
+            <h3>Inbox ‚Äî Candidate Replies</h3>
             <p>${inbox.length} message${inbox.length !== 1 ? 's' : ''} received</p>
           </div>
           <div style="display:flex;gap:8px;align-items:center">
-            <button class="btn btn-outline btn-sm" onclick="event.stopPropagation();pollInbox(true)" style="font-size:11px">🔄 Refresh</button>
-            <button class="btn btn-outline btn-sm" onclick="event.stopPropagation();startInboxPolling()" style="font-size:11px;color:#25D366;border-color:#25D366">▶ Auto-poll</button>
+            <button class="btn btn-outline btn-sm" onclick="event.stopPropagation();pollInbox(true)" style="font-size:11px">üîÑ Refresh</button>
+            <button class="btn btn-outline btn-sm" onclick="event.stopPropagation();startInboxPolling()" style="font-size:11px;color:#25D366;border-color:#25D366">‚ñ∂ Auto-poll</button>
           </div>
         </div>
         <div class="card-body" id="inbox-body">
-          ${inbox.length === 0 ? `<p style="font-size:13px;color:var(--text-muted);text-align:center;padding:16px 0">No replies yet — click Refresh to check</p>` :
+          ${inbox.length === 0 ? `<p style="font-size:13px;color:var(--text-muted);text-align:center;padding:16px 0">No replies yet ‚Äî click Refresh to check</p>` :
             inbox.map(m => `
             <div style="border:1px solid var(--border);border-radius:8px;padding:12px;margin-bottom:8px">
               <div style="display:flex;justify-content:space-between;margin-bottom:4px">
@@ -1648,16 +1684,16 @@ function renderWhatsApp() {
               </div>
               <div style="font-size:13px;color:var(--text);white-space:pre-wrap;margin-bottom:10px">${escHtml(m.text)}</div>
               <div style="display:flex;gap:8px">
-                <input type="text" id="reply-${m.id}" placeholder="Type reply…"
+                <input type="text" id="reply-${m.id}" placeholder="Type reply‚Ä¶"
                   style="flex:1;padding:6px 10px;border:1px solid var(--border);border-radius:6px;font-size:12px;outline:none"
                   onkeydown="if(event.key==='Enter')sendReply('${m.from}',document.getElementById('reply-${m.id}').value)" />
                 <button class="btn btn-outline btn-sm" onclick="sendReply('${m.from}',document.getElementById('reply-${m.id}').value)">Send</button>
-                ${state.cfg.claudeKey ? `<button class="btn btn-sm" style="background:#6c47d4;color:#fff;border:none;cursor:pointer" onclick="aiReply('${m.from}',${JSON.stringify(m.text).replace(/'/g,"&#39;")})">🤖 AI</button>` : ''}
+                ${state.cfg.claudeKey ? `<button class="btn btn-sm" style="background:#6c47d4;color:#fff;border:none;cursor:pointer" onclick="aiReply('${m.from}',${JSON.stringify(m.text).replace(/'/g,"&#39;")})">ü§ñ AI</button>` : ''}
               </div>
             </div>`).join('')}
         </div>
       </div>` : `<div style="margin-top:16px;padding:12px 16px;background:var(--warning-light);border-radius:8px;font-size:12.5px;color:#92400e">
-        💡 Add Green API credentials in ⚙️ Settings to enable inbox & auto-reply
+        üí° Add Green API credentials in ‚öôÔ∏è Settings to enable inbox & auto-reply
       </div>`}
     </div>
 
@@ -1666,7 +1702,7 @@ function renderWhatsApp() {
       <div class="wa-panel" style="margin-bottom:16px; border:2px solid ${state.botMode ? '#25D366' : 'var(--border)'}">
         <div style="display:flex; align-items:center; justify-content:space-between; margin-bottom:${state.botMode ? '14px' : '0'}">
           <div>
-            <h3 style="margin:0; font-size:14px">🤖 Auto-Reply Bot</h3>
+            <h3 style="margin:0; font-size:14px">ü§ñ Auto-Reply Bot</h3>
             <p style="font-size:12px; color:var(--text-muted); margin:2px 0 0">Automatically replies to any HR-Tech enquiry on WhatsApp</p>
           </div>
           <label style="display:flex; align-items:center; gap:8px; cursor:pointer">
@@ -1679,45 +1715,93 @@ function renderWhatsApp() {
         </div>
         ${state.botMode ? `
         <div style="background:#f0fdf4; border-radius:8px; padding:10px 12px; margin-bottom:12px; font-size:12px; color:#166534">
-          ✅ Bot is <strong>active</strong> — polling every 8s · replies automatically to HR enquiries using Claude + your JD
-          ${_botPolling ? '' : '<br><button onclick="startInboxPolling()" style="margin-top:6px;background:#25D366;color:#fff;border:none;border-radius:6px;padding:4px 10px;cursor:pointer;font-size:11px">▶ Start polling</button>'}
+          ‚úÖ Bot is <strong>active</strong> ‚Äî polling every 8s ¬∑ replies automatically to HR enquiries using Claude + your JD
+          ${_botPolling ? '' : '<br><button onclick="startInboxPolling()" style="margin-top:6px;background:#25D366;color:#fff;border:none;border-radius:6px;padding:4px 10px;cursor:pointer;font-size:11px">‚ñ∂ Start polling</button>'}
         </div>
+
+        <!-- ‚îÄ‚îÄ JD PDF UPLOAD SECTION ‚îÄ‚îÄ -->
+        <div style="background:#f8faff; border:1.5px solid var(--border); border-radius:10px; padding:14px; margin-bottom:14px">
+          <div style="display:flex; align-items:center; justify-content:space-between; margin-bottom:10px">
+            <div>
+              <div style="font-size:13px; font-weight:700; color:var(--text)">üìÑ JD-Driven Screening</div>
+              <div style="font-size:11.5px; color:var(--text-muted); margin-top:2px">Upload a JD PDF ‚Äî bot auto-generates screening questions and asks them one-by-one</div>
+            </div>
+            ${state.jdPdf?.loaded ? `<button onclick="clearJDPdf()" style="font-size:11px; background:none; border:1px solid var(--border); border-radius:6px; padding:3px 8px; cursor:pointer; color:var(--text-muted)">‚úï Clear</button>` : ''}
+          </div>
+
+          ${state.jdPdf?.loaded ? `
+          <!-- Loaded state -->
+          <div class="jd-pdf-loaded" style="margin-bottom:10px">
+            <span style="font-size:20px">üìã</span>
+            <div style="flex:1; min-width:0">
+              <div style="font-size:12.5px; font-weight:600; color:#166534; white-space:nowrap; overflow:hidden; text-overflow:ellipsis">${escHtml(state.jdPdf.fileName)}</div>
+              <div style="font-size:11px; color:#166534; opacity:.8">${state.jdPdf.text.length} chars extracted ¬∑ ${state.jdPdf.questions.length} screening questions</div>
+            </div>
+            <span style="font-size:18px">‚úÖ</span>
+          </div>
+          ${state.jdPdf.questions?.length ? `
+          <div style="margin-bottom:8px">
+            <div style="font-size:11px; font-weight:600; color:var(--text-muted); margin-bottom:6px; text-transform:uppercase; letter-spacing:.5px">Screening Questions</div>
+            ${state.jdPdf.questions.map((q, i) => `
+            <div style="display:flex; gap:8px; align-items:flex-start; padding:6px 0; border-bottom:1px solid var(--border)">
+              <span style="font-size:11px; font-weight:700; color:var(--primary); min-width:16px; margin-top:1px">${i+1}</span>
+              <span style="font-size:12px; color:var(--text); line-height:1.4">${escHtml(q)}</span>
+            </div>`).join('')}
+          </div>
+          <button id="jd-regen-btn" class="btn btn-outline btn-sm" onclick="regenerateJDQuestions()" style="font-size:11px; width:100%; margin-top:4px">‚Ü∫ Regenerate Questions</button>
+          ` : `<button id="jd-pdf-upload-btn" class="btn btn-primary btn-sm" onclick="generateJDQuestions(state.jdPdf.text).then(qs=>{ if(qs){ state.jdPdf.questions=qs; saveJDPdf(); renderWhatsApp(); toast('Questions ready!','success'); }})" style="font-size:11px; width:100%">üß† Generate Questions from JD</button>`}
+          ` : `
+          <!-- Upload prompt -->
+          <div class="jd-pdf-zone" id="jd-drop-zone"
+            ondragover="event.preventDefault(); this.classList.add('drag-over')"
+            ondragleave="this.classList.remove('drag-over')"
+            ondrop="event.preventDefault(); this.classList.remove('drag-over'); document.getElementById('jd-pdf-file').files=event.dataTransfer.files; handleJDPdfUpload(document.getElementById('jd-pdf-file'))">
+            <input type="file" id="jd-pdf-file" accept=".pdf,application/pdf" onchange="handleJDPdfUpload(this)" />
+            <div style="font-size:28px; margin-bottom:6px">üì§</div>
+            <div style="font-size:13px; font-weight:600; color:var(--text)">Drop JD PDF here or click to browse</div>
+            <div style="font-size:12px; color:var(--text-muted); margin-top:3px">AI will extract the text and generate 6 targeted screening questions</div>
+          </div>
+          ${job().jd ? `<div style="margin-top:8px; font-size:11.5px; color:var(--text-muted); text-align:center">
+            üí° Or <strong>use pasted JD</strong> from Setup ‚Äî no upload needed, bot reads it automatically
+          </div>` : ''}`}
+        </div>
+
         <div style="margin-bottom:10px">
-          <label style="font-size:11px; font-weight:600; color:var(--text-muted); display:block; margin-bottom:4px">Bot Persona / Instructions (optional — leave blank for smart defaults)</label>
+          <label style="font-size:11px; font-weight:600; color:var(--text-muted); display:block; margin-bottom:4px">Bot Persona / Instructions (optional ‚Äî leave blank for smart defaults)</label>
           <textarea id="bot-prompt-editor" rows="5"
             style="width:100%; padding:10px; border:1px solid var(--border); border-radius:8px; font-size:12px; font-family:inherit; resize:vertical; outline:none; box-sizing:border-box"
             placeholder="e.g. You are a helpful HR recruiter for NHRMS. Only respond to messages about jobs and hiring. Be warm and concise..."
             oninput="state.botPrompt=this.value; saveBotSettings()">${escHtml(state.botPrompt)}</textarea>
           <div style="display:flex; gap:8px; margin-top:6px">
-            <button class="btn btn-outline btn-sm" onclick="state.botPrompt=''; saveBotSettings(); document.getElementById('bot-prompt-editor').value=''" style="font-size:11px">↺ Use smart defaults</button>
-            <button class="btn btn-sm" style="background:#25D366;color:#fff;border:none;cursor:pointer;font-size:11px;border-radius:6px;padding:4px 10px" onclick="previewBotPrompt()">👁 Preview prompt</button>
+            <button class="btn btn-outline btn-sm" onclick="state.botPrompt=''; saveBotSettings(); document.getElementById('bot-prompt-editor').value=''" style="font-size:11px">‚Ü∫ Use smart defaults</button>
+            <button class="btn btn-sm" style="background:#25D366;color:#fff;border:none;cursor:pointer;font-size:11px;border-radius:6px;padding:4px 10px" onclick="previewBotPrompt()">üëÅ Preview prompt</button>
           </div>
         </div>` : ''}
       </div>
 
       <div class="wa-panel">
-        <h3>✏️ Message (Editable)</h3>
+        <h3>‚úèÔ∏è Message (Editable)</h3>
         <div class="template-tabs">
-          <div class="template-tab ${activeTemplate === 'shortlist' ? 'active' : ''}" onclick="setTemplate('shortlist')">🎉 Shortlist</div>
-          <div class="template-tab ${activeTemplate === 'followup' ? 'active' : ''}" onclick="setTemplate('followup')">🔄 Follow-up</div>
-          <div class="template-tab ${activeTemplate === 'info' ? 'active' : ''}" onclick="setTemplate('info')">ℹ️ Info</div>
+          <div class="template-tab ${activeTemplate === 'shortlist' ? 'active' : ''}" onclick="setTemplate('shortlist')">üéâ Shortlist</div>
+          <div class="template-tab ${activeTemplate === 'followup' ? 'active' : ''}" onclick="setTemplate('followup')">üîÑ Follow-up</div>
+          <div class="template-tab ${activeTemplate === 'info' ? 'active' : ''}" onclick="setTemplate('info')">‚ÑπÔ∏è Info</div>
         </div>
         <textarea id="wa-msg-editor"
           style="width:100%;min-height:220px;padding:12px;border:1px solid var(--border);border-radius:8px;font-size:12.5px;line-height:1.6;resize:vertical;font-family:inherit;color:var(--text);background:#fff;outline:none;box-sizing:border-box"
           oninput="job().waCustomMsg=this.value;saveJobs()"
-          placeholder="Edit your message here…">${escHtml(editableMsg)}</textarea>
+          placeholder="Edit your message here‚Ä¶">${escHtml(editableMsg)}</textarea>
         <div style="font-size:11px; color:var(--text-muted); margin:6px 0 14px; line-height:1.6">
           Variables: <code>{name}</code> <code>{role}</code> <code>{jd_title}</code> <code>{topmate_link}</code> <code>{recruiter}</code><br>
-          <button style="background:none;border:none;color:var(--primary);font-size:11px;cursor:pointer;padding:0" onclick="resetTemplate()">↺ Reset to default</button>
+          <button style="background:none;border:none;color:var(--primary);font-size:11px;cursor:pointer;padding:0" onclick="resetTemplate()">‚Ü∫ Reset to default</button>
         </div>
         <div id="wa-send-info" style="background:var(--primary-light); border-radius:8px; padding:10px 14px; font-size:12.5px; color:var(--primary); margin-bottom:14px">
-          <strong>${job().waSelected.size} selected</strong> — ${hasBot ? '🤖 sends via bot automatically' : 'opens WhatsApp with message pre-filled'}
+          <strong>${job().waSelected.size} selected</strong> ‚Äî ${hasBot ? 'ü§ñ sends via bot automatically' : 'opens WhatsApp with message pre-filled'}
         </div>
         <button class="btn btn-wa" style="width:100%; justify-content:center; padding:12px" onclick="sendWhatsAppMessages()" id="wa-send-btn">
-          📱 Send to ${job().waSelected.size} Candidate${job().waSelected.size !== 1 ? 's' : ''}
+          üì± Send to ${job().waSelected.size} Candidate${job().waSelected.size !== 1 ? 's' : ''}
         </button>
         <div style="margin-top:12px; font-size:12px; color:var(--text-muted); text-align:center">
-          ${hasBot ? '✅ WhatsApp bot connected — messages send automatically' : '💡 Add Green API credentials in ⚙️ Settings to enable auto-send'}
+          ${hasBot ? '‚úÖ WhatsApp bot connected ‚Äî messages send automatically' : 'üí° Add Green API credentials in ‚öôÔ∏è Settings to enable auto-send'}
         </div>
       </div>
     </div>
@@ -1730,28 +1814,171 @@ function resetTemplate() {
   renderWhatsApp();
 }
 
-// ── Bot helpers ──
+// ‚îÄ‚îÄ Bot helpers ‚îÄ‚îÄ
 function saveBotSettings() {
   localStorage.setItem('nhrms_bot', JSON.stringify({ botMode: state.botMode, botPrompt: state.botPrompt }));
+}
+
+// ‚îÄ‚îÄ JD PDF feature ‚îÄ‚îÄ
+function saveJDPdf() {
+  localStorage.setItem('nhrms_jdpdf', JSON.stringify({
+    text: state.jdPdf.text,
+    questions: state.jdPdf.questions,
+    fileName: state.jdPdf.fileName
+  }));
+}
+
+function clearJDPdf() {
+  state.jdPdf = { text: '', questions: [], fileName: '', loaded: false };
+  localStorage.removeItem('nhrms_jdpdf');
+  renderWhatsApp();
+  toast('JD PDF cleared');
+}
+
+async function extractPdfText(file) {
+  // Set PDF.js worker
+  if (window.pdfjsLib) {
+    pdfjsLib.GlobalWorkerOptions.workerSrc =
+      'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js';
+  } else {
+    throw new Error('PDF.js not loaded');
+  }
+  const arrayBuf = await file.arrayBuffer();
+  const pdf = await pdfjsLib.getDocument({ data: arrayBuf }).promise;
+  let fullText = '';
+  for (let p = 1; p <= pdf.numPages; p++) {
+    const page = await pdf.getPage(p);
+    const tc = await page.getTextContent();
+    fullText += tc.items.map(i => i.str).join(' ') + '\n';
+  }
+  return fullText.trim();
+}
+
+async function generateJDQuestions(jdText) {
+  if (!state.cfg.claudeKey) { toast('Claude API key required to generate questions', 'error'); return null; }
+  const prompt = `You are a senior HR recruiter. Analyse the Job Description below and generate exactly 6 targeted screening questions to ask candidates over WhatsApp. The questions should cover: key skills, relevant experience, cultural fit, availability/notice period, location, and one role-specific technical question.
+
+Return ONLY a valid JSON array of 6 strings ‚Äî no explanation, no numbering, no markdown:
+["question 1", "question 2", ...]
+
+JOB DESCRIPTION:
+${jdText.slice(0, 2000)}`;
+
+  const res = await fetch('https://api.anthropic.com/v1/messages', {
+    method: 'POST',
+    headers: {
+      'x-api-key': state.cfg.claudeKey,
+      'anthropic-version': '2023-06-01',
+      'Content-Type': 'application/json',
+      'anthropic-dangerous-direct-browser-access': 'true'
+    },
+    body: JSON.stringify({
+      model: 'claude-haiku-4-5-20251001',
+      max_tokens: 600,
+      messages: [{ role: 'user', content: prompt }]
+    })
+  });
+  const d = await res.json();
+  const raw = d.content?.[0]?.text?.trim();
+  try {
+    const qs = JSON.parse(raw);
+    return Array.isArray(qs) ? qs : null;
+  } catch(e) {
+    // try extracting JSON array from text
+    const m = raw.match(/\[[\s\S]*\]/);
+    if (m) { try { return JSON.parse(m[0]); } catch(e2) {} }
+    return null;
+  }
+}
+
+async function handleJDPdfUpload(input) {
+  const file = input.files?.[0];
+  if (!file) return;
+  if (file.type !== 'application/pdf' && !file.name.endsWith('.pdf')) {
+    toast('Please upload a PDF file', 'error'); return;
+  }
+  const btn = document.getElementById('jd-pdf-upload-btn');
+  if (btn) { btn.textContent = '‚è≥ Extracting text‚Ä¶'; btn.disabled = true; }
+  try {
+    const text = await extractPdfText(file);
+    if (!text || text.length < 100) { toast('Could not extract text from PDF ‚Äî try a text-based PDF', 'error'); return; }
+    state.jdPdf.text = text;
+    state.jdPdf.fileName = file.name;
+    state.jdPdf.loaded = true;
+    state.jdPdf.questions = [];
+    saveJDPdf();
+    toast('üìÑ JD extracted ‚Äî generating screening questions‚Ä¶');
+    if (btn) { btn.textContent = 'üß† Generating questions‚Ä¶'; }
+    const questions = await generateJDQuestions(text);
+    if (questions && questions.length) {
+      state.jdPdf.questions = questions;
+      saveJDPdf();
+      toast(`‚úÖ ${questions.length} screening questions ready!`, 'success');
+    } else {
+      toast('JD loaded ‚Äî could not auto-generate questions (check Claude key)', 'error');
+    }
+  } catch(e) {
+    toast(`‚ùå PDF error: ${e.message}`, 'error');
+    console.error('JD PDF error:', e);
+  } finally {
+    renderWhatsApp();
+  }
+}
+
+async function regenerateJDQuestions() {
+  if (!state.jdPdf.text) { toast('Upload a JD PDF first', 'error'); return; }
+  const btn = document.getElementById('jd-regen-btn');
+  if (btn) { btn.textContent = '‚è≥ Regenerating‚Ä¶'; btn.disabled = true; }
+  const questions = await generateJDQuestions(state.jdPdf.text);
+  if (questions && questions.length) {
+    state.jdPdf.questions = questions;
+    saveJDPdf();
+    toast(`‚úÖ Questions regenerated!`, 'success');
+  } else {
+    toast('Failed to regenerate ‚Äî check Claude API key', 'error');
+  }
+  renderWhatsApp();
 }
 
 function getBotSystemPrompt() {
   if (state.botPrompt) return state.botPrompt;
   const cfg = state.cfg;
   const j = job();
-  return `You are ${cfg.recruiterName || 'a Senior HR Professional'}, a Principal Executive Search Consultant at NHRMS. Your communication style is measured, authoritative, and strictly professional — the tone of a Head of HR, not a customer service agent. No exclamation marks. No filler phrases like "Great!" or "Absolutely!" or "Happy to help". Be direct, precise, and respectful.
 
-${j.jd ? `MANDATE:\nPosition: ${j.title}\n\n${j.jd.slice(0, 900)}` : `You are managing executive search mandates at NHRMS, currently hiring for: ${j.title || 'senior positions'}`}
+  // Determine JD source ‚Äî PDF upload takes priority over pasted text
+  const hasPdfJD = state.jdPdf?.loaded && state.jdPdf?.text;
+  const jdText = hasPdfJD ? state.jdPdf.text.slice(0, 1200) : (j.jd ? j.jd.slice(0, 900) : '');
+  const hasQuestions = hasPdfJD && state.jdPdf.questions?.length > 0;
+
+  const jdSection = jdText
+    ? `MANDATE:\nPosition: ${j.title}${hasPdfJD ? ` (from uploaded JD: ${state.jdPdf.fileName})` : ''}\n\n${jdText}`
+    : `You are managing executive search mandates at NHRMS, currently hiring for: ${j.title || 'senior positions'}`;
+
+  const questionsSection = hasQuestions ? `
+
+STRUCTURED SCREENING PROTOCOL:
+You must screen candidates by asking the following questions STRICTLY ONE AT A TIME ‚Äî never ask more than one question per message. Wait for each answer before proceeding to the next question. Track which questions have been asked based on conversation history.
+
+Screening Questions (ask in order):
+${state.jdPdf.questions.map((q, i) => `${i + 1}. ${q}`).join('\n')}
+
+After all questions are answered:
+- If the candidate is a strong fit: congratulate them briefly and share the scheduling link: https://topmate.io/${cfg.topmate || 'recruiter'}
+- If the candidate is not a fit: thank them professionally and let them know you will keep their profile on file.
+- Keep your assessment strictly based on the JD above ‚Äî do not evaluate on criteria not in the JD.` : '';
+
+  return `You are ${cfg.recruiterName || 'a Senior HR Professional'}, a Principal Executive Search Consultant at NHRMS. Your communication style is measured, authoritative, and strictly professional ‚Äî the tone of a Head of HR, not a customer service agent. No exclamation marks. No filler phrases like "Great!" or "Absolutely!" or "Happy to help". Be direct, precise, and respectful.
+
+${jdSection}${questionsSection}
 
 Interview scheduling: https://topmate.io/${cfg.topmate || 'recruiter'}
 
 ENGAGEMENT PROTOCOL:
 - Respond only to messages related to careers, hiring, job opportunities, HR, recruitment, or professional enquiries
 - Assess candidate suitability based on the mandate above before engaging further
-- Ask targeted qualification questions (experience, current role, notice period, location) — one at a time
-- If the candidate meets the criteria, direct them to schedule a call via the link above
+${hasQuestions ? '- Follow the STRUCTURED SCREENING PROTOCOL above ‚Äî one question at a time, in order' : '- Ask targeted qualification questions (experience, current role, notice period, location) ‚Äî one at a time'}
 - If the message is unrelated to HR or professional matters, respond: "This channel is dedicated to professional recruitment enquiries. Please reach out if you are exploring relevant opportunities."
-- Never disclose salary ranges — compensation will be discussed during the evaluation process
+- Never disclose salary ranges ‚Äî compensation will be discussed during the evaluation process
 - Never fabricate details not present in the mandate
 - Keep replies to 3 sentences maximum`;
 }
@@ -1761,7 +1988,7 @@ function isHRTechRelated(text) {
   return keywords.test(text);
 }
 
-// ── Inbox polling ──
+// ‚îÄ‚îÄ Inbox polling ‚îÄ‚îÄ
 let _inboxPollingTimer = null;
 let _botPolling = false;
 
@@ -1783,7 +2010,7 @@ async function pollInbox(once = false) {
       if (txt) {
         const chatId = data.body.senderData?.chatId || '';
         if (chatId.endsWith('@g.us')) {
-          // group message — skip silently, acknowledge and move on
+          // group message ‚Äî skip silently, acknowledge and move on
           await fetch(`${host}/waInstance${state.cfg.greenInstance}/deleteNotification/${state.cfg.greenToken}/${data.receiptId}`, { method: 'DELETE' });
           if (!once) _inboxPollingTimer = setTimeout(pollInbox, state.botMode ? 8000 : 12000);
           return;
@@ -1807,7 +2034,7 @@ async function pollInbox(once = false) {
           if (state.botMode) {
             autoBotReply(chatId, senderName, txt);
           } else {
-            toast(`📩 ${senderName}: ${txt.slice(0,50)}`, 'success');
+            toast(`üì© ${senderName}: ${txt.slice(0,50)}`, 'success');
             renderInboxSection();
           }
         }
@@ -1824,7 +2051,7 @@ async function pollInbox(once = false) {
 
 async function autoBotReply(chatId, senderName, incomingText) {
   if (!state.cfg.claudeKey) {
-    toast('⚠️ Bot needs Claude API key — add in Settings', 'error');
+    toast('‚ö†Ô∏è Bot needs Claude API key ‚Äî add in Settings', 'error');
     return;
   }
   const systemPrompt = getBotSystemPrompt();
@@ -1862,11 +2089,11 @@ async function autoBotReply(chatId, senderName, incomingText) {
 
     // auto-send reply
     await sendReply(chatId, reply);
-    toast(`🤖 Auto-replied to ${senderName}`, 'success');
+    toast(`ü§ñ Auto-replied to ${senderName}`, 'success');
     renderInboxSection();
   } catch(e) {
     console.error('autoBotReply error', e);
-    toast(`⚠️ Bot reply failed: ${e.message}`, 'error');
+    toast(`‚ö†Ô∏è Bot reply failed: ${e.message}`, 'error');
   }
 }
 
@@ -1874,13 +2101,13 @@ function startInboxPolling() {
   clearTimeout(_inboxPollingTimer);
   _botPolling = true;
   pollInbox();
-  toast(state.botMode ? '🤖 Bot is live — auto-replying to HR enquiries' : '📡 Auto-polling for replies every 8s', 'success');
+  toast(state.botMode ? 'ü§ñ Bot is live ‚Äî auto-replying to HR enquiries' : 'üì° Auto-polling for replies every 8s', 'success');
 }
 
 function stopInboxPolling() {
   clearTimeout(_inboxPollingTimer);
   _botPolling = false;
-  toast('⏹ Bot stopped');
+  toast('‚èπ Bot stopped');
 }
 
 function toggleBotMode(val) {
@@ -1888,7 +2115,7 @@ function toggleBotMode(val) {
   saveBotSettings();
   renderWhatsApp();
   if (val && !_botPolling) startInboxPolling();
-  toast(val ? '🤖 Bot mode ON — auto-replying to all HR enquiries' : '🔕 Bot mode OFF — manual replies only');
+  toast(val ? 'ü§ñ Bot mode ON ‚Äî auto-replying to all HR enquiries' : 'üîï Bot mode OFF ‚Äî manual replies only');
 }
 
 function renderInboxSection() {
@@ -1901,14 +2128,14 @@ function renderInboxSection() {
     if (seen.has(m.from)) return false;
     seen.add(m.from); return true;
   });
-  if (!threads.length) { body.innerHTML = '<p style="font-size:13px;color:var(--text-muted);text-align:center;padding:16px 0">No replies yet — click Refresh to check</p>'; return; }
+  if (!threads.length) { body.innerHTML = '<p style="font-size:13px;color:var(--text-muted);text-align:center;padding:16px 0">No replies yet ‚Äî click Refresh to check</p>'; return; }
   body.innerHTML = threads.map(m => {
     const thread = (convos[m.from] || []).slice(-6); // last 6 turns
     const threadHtml = thread.map(t => `
       <div style="display:flex;justify-content:${t.role==='assistant'?'flex-end':'flex-start'};margin-bottom:6px">
         <div style="max-width:85%;padding:8px 12px;border-radius:${t.role==='assistant'?'12px 12px 2px 12px':'12px 12px 12px 2px'};background:${t.role==='assistant'?'#25D366':'#f1f5f9'};color:${t.role==='assistant'?'#fff':'var(--text)'};font-size:12px;line-height:1.5;white-space:pre-wrap">
           ${escHtml(t.content)}
-          <div style="font-size:10px;opacity:.65;margin-top:3px;text-align:right">${t.role==='assistant'?'🤖 Bot':'👤'} · ${new Date(t.time).toLocaleTimeString([], {hour:'2-digit',minute:'2-digit'})}</div>
+          <div style="font-size:10px;opacity:.65;margin-top:3px;text-align:right">${t.role==='assistant'?'ü§ñ Bot':'üë§'} ¬∑ ${new Date(t.time).toLocaleTimeString([], {hour:'2-digit',minute:'2-digit'})}</div>
         </div>
       </div>`).join('');
     return `
@@ -1923,12 +2150,12 @@ function renderInboxSection() {
       ${thread.length ? `<div style="padding:12px 14px;max-height:220px;overflow-y:auto;background:#fff">${threadHtml}</div>` : `<div style="padding:12px 14px;font-size:13px;color:var(--text)">${escHtml(m.text)}</div>`}
       ${!state.botMode ? `
       <div style="padding:10px 14px;border-top:1px solid var(--border);display:flex;gap:8px;background:#fafafa">
-        <input type="text" id="reply-${m.id}" placeholder="Type reply…"
+        <input type="text" id="reply-${m.id}" placeholder="Type reply‚Ä¶"
           style="flex:1;padding:6px 10px;border:1px solid var(--border);border-radius:6px;font-size:12px;outline:none"
           onkeydown="if(event.key==='Enter')sendReply('${m.from}',document.getElementById('reply-${m.id}').value)" />
         <button class="btn btn-outline btn-sm" onclick="sendReply('${m.from}',document.getElementById('reply-${m.id}').value)">Send</button>
-        ${state.cfg.claudeKey ? `<button class="btn btn-sm" style="background:#6c47d4;color:#fff;border:none;border-radius:6px;padding:6px 12px;cursor:pointer;font-size:12px" onclick="aiReply('${m.from}','${m.text.replace(/'/g,"\\'")}')">🤖 Draft</button>` : ''}
-      </div>` : `<div style="padding:8px 14px;background:#f0fdf4;font-size:11px;color:#166534;border-top:1px solid #bbf7d0">🤖 Bot mode active — replies sent automatically</div>`}
+        ${state.cfg.claudeKey ? `<button class="btn btn-sm" style="background:#6c47d4;color:#fff;border:none;border-radius:6px;padding:6px 12px;cursor:pointer;font-size:12px" onclick="aiReply('${m.from}','${m.text.replace(/'/g,"\\'")}')">ü§ñ Draft</button>` : ''}
+      </div>` : `<div style="padding:8px 14px;background:#f0fdf4;font-size:11px;color:#166534;border-top:1px solid #bbf7d0">ü§ñ Bot mode active ‚Äî replies sent automatically</div>`}
     </div>`;
   }).join('');
 }
@@ -1939,8 +2166,8 @@ function previewBotPrompt() {
   modal.style.cssText = 'position:fixed;inset:0;z-index:10000;background:rgba(0,0,0,.55);display:flex;align-items:center;justify-content:center;padding:20px';
   modal.innerHTML = `<div style="background:#fff;border-radius:14px;padding:24px;max-width:600px;width:100%;max-height:80vh;overflow-y:auto">
     <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:16px">
-      <h3 style="font-size:15px;font-weight:700">🤖 Active Bot System Prompt</h3>
-      <button onclick="this.closest('div[style*=fixed]').remove()" style="background:none;border:none;font-size:20px;cursor:pointer;color:#64748b">✕</button>
+      <h3 style="font-size:15px;font-weight:700">ü§ñ Active Bot System Prompt</h3>
+      <button onclick="this.closest('div[style*=fixed]').remove()" style="background:none;border:none;font-size:20px;cursor:pointer;color:#64748b">‚úï</button>
     </div>
     <pre style="font-size:12px;line-height:1.6;white-space:pre-wrap;color:#1e293b;background:#f8fafc;padding:14px;border-radius:8px">${escHtml(p)}</pre>
   </div>`;
@@ -1954,15 +2181,15 @@ async function sendReply(chatId, text) {
     const res = await fetch(`${host}/waInstance${state.cfg.greenInstance}/sendMessage/${state.cfg.greenToken}`,
       { method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify({ chatId, message: text }) });
     const data = await res.json();
-    if (data.idMessage) toast('✅ Reply sent!', 'success');
-    else toast('❌ Reply failed: ' + JSON.stringify(data), 'error');
-  } catch(e) { toast('❌ ' + e.message, 'error'); }
+    if (data.idMessage) toast('‚úÖ Reply sent!', 'success');
+    else toast('‚ùå Reply failed: ' + JSON.stringify(data), 'error');
+  } catch(e) { toast('‚ùå ' + e.message, 'error'); }
 }
 
 async function aiReply(chatId, incomingText) {
   if (!state.cfg.claudeKey) { toast('Add Claude API key in Settings first', 'error'); return; }
   const cfg = { ...state.cfg, jdTitle: extractJDTitle(), topmateLink: `https://topmate.io/${state.cfg.topmate}` };
-  toast('🤖 Generating reply…');
+  toast('ü§ñ Generating reply‚Ä¶');
   try {
     const res = await fetch('https://api.anthropic.com/v1/messages', {
       method: 'POST',
@@ -1983,7 +2210,7 @@ async function aiReply(chatId, incomingText) {
     // find any reply input near the AI button
     const allInputs = document.querySelectorAll(`input[type="text"]`);
     allInputs.forEach(i => { if (i.id.startsWith('reply-')) i.value = reply; });
-    toast('🤖 AI reply ready — review & send!', 'success');
+    toast('ü§ñ AI reply ready ‚Äî review & send!', 'success');
   } catch(e) { toast('AI error: ' + e.message, 'error'); }
 }
 
@@ -1992,9 +2219,9 @@ function toggleWA(id) {
   else job().waSelected.add(id);
   updateBadges();
   const check = document.getElementById(`wa-check-${id}`);
-  if (check) { check.classList.toggle('checked', job().waSelected.has(id)); check.textContent = job().waSelected.has(id) ? '✓' : ''; }
-  document.getElementById('wa-send-info').innerHTML = `<strong>${job().waSelected.size} selected</strong> — ${state.cfg.greenInstance && state.cfg.greenToken ? '🤖 will send automatically via bot' : 'opens WhatsApp with message pre-filled'}`;
-  document.getElementById('wa-send-btn').textContent = `📤 Send to ${job().waSelected.size} Candidate${job().waSelected.size !== 1 ? 's' : ''}`;
+  if (check) { check.classList.toggle('checked', job().waSelected.has(id)); check.textContent = job().waSelected.has(id) ? '‚úì' : ''; }
+  document.getElementById('wa-send-info').innerHTML = `<strong>${job().waSelected.size} selected</strong> ‚Äî ${state.cfg.greenInstance && state.cfg.greenToken ? 'ü§ñ will send automatically via bot' : 'opens WhatsApp with message pre-filled'}`;
+  document.getElementById('wa-send-btn').textContent = `üì§ Send to ${job().waSelected.size} Candidate${job().waSelected.size !== 1 ? 's' : ''}`;
 }
 
 function selectAllWA(val) {
@@ -2033,9 +2260,9 @@ async function sendWhatsAppMessages() {
     let sent = 0, failed = 0;
     const host = getGreenApiHost();
     for (const c of candidates) {
-      if (!c.phone) { failed++; toast(`⚠️ ${c.name} has no phone number`, 'error'); continue; }
+      if (!c.phone) { failed++; toast(`‚ö†Ô∏è ${c.name} has no phone number`, 'error'); continue; }
       const phone = c.phone.replace(/\D/g, '');
-      if (phone.length < 7) { failed++; toast(`⚠️ Invalid phone for ${c.name}: ${c.phone}`, 'error'); continue; }
+      if (phone.length < 7) { failed++; toast(`‚ö†Ô∏è Invalid phone for ${c.name}: ${c.phone}`, 'error'); continue; }
       const chatId = `${phone}@c.us`;
       const message = msgTemplate ? applyVars(msgTemplate, c, cfg) : WA_TEMPLATES[activeTemplate](c, cfg);
       try {
@@ -2048,7 +2275,7 @@ async function sendWhatsAppMessages() {
         if (data.idMessage) {
           sent++; c.status = 'messaged'; saveJobs();
         } else {
-          // Detect quota exceeded — fall back to wa.me for remaining candidates
+          // Detect quota exceeded ‚Äî fall back to wa.me for remaining candidates
           const isQuotaError = data.invokeStatus?.status === 'QUOTE_ALLOWED' ||
             data.invokeStatus?.status === 'CORRESPONDENTS_QUOTE_EXCEEDED' ||
             JSON.stringify(data).includes('quota');
@@ -2057,32 +2284,32 @@ async function sendWhatsAppMessages() {
             // collect remaining (this + not-yet-processed) for wa.me fallback
             const remaining = candidates.slice(candidates.indexOf(c));
             updateBadges();
-            btn.innerHTML = `📱 Send to ${job().waSelected.size} Candidate${job().waSelected.size !== 1 ? 's' : ''}`;
+            btn.innerHTML = `üì± Send to ${job().waSelected.size} Candidate${job().waSelected.size !== 1 ? 's' : ''}`;
             btn.disabled = false;
-            toast(`⚠️ Green API free quota exceeded — opening wa.me links for remaining ${remaining.length} candidate(s)`, 'error');
+            toast(`‚ö†Ô∏è Green API free quota exceeded ‚Äî opening wa.me links for remaining ${remaining.length} candidate(s)`, 'error');
             setTimeout(() => showWaLinksModal(remaining, cfg, msgTemplate), 800);
             return;
           }
           failed++;
           const errDetail = data.message || data.invokeStatus?.description || data.error || JSON.stringify(data);
           console.warn('Green API failed for', c.name, data);
-          toast(`❌ ${c.name}: ${errDetail.slice(0, 80)}`, 'error');
+          toast(`‚ùå ${c.name}: ${errDetail.slice(0, 80)}`, 'error');
         }
       } catch (err) {
         failed++;
-        toast(`❌ Network error for ${c.name}: ${err.message}`, 'error');
+        toast(`‚ùå Network error for ${c.name}: ${err.message}`, 'error');
         console.error('Green API error', c.name, err);
       }
     }
     updateBadges();
-    btn.innerHTML = `📱 Send to ${job().waSelected.size} Candidate${job().waSelected.size !== 1 ? 's' : ''}`;
+    btn.innerHTML = `üì± Send to ${job().waSelected.size} Candidate${job().waSelected.size !== 1 ? 's' : ''}`;
     btn.disabled = false;
-    if (sent > 0 || failed > 0) toast(`${sent > 0 ? '✅ '+sent+' sent' : ''}${failed ? (sent?' · ':'')+'❌ '+failed+' failed' : ''}`, sent > 0 ? 'success' : 'error');
+    if (sent > 0 || failed > 0) toast(`${sent > 0 ? '‚úÖ '+sent+' sent' : ''}${failed ? (sent?' ¬∑ ':'')+'‚ùå '+failed+' failed' : ''}`, sent > 0 ? 'success' : 'error');
     renderWhatsApp();
     return;
   }
 
-  // No bot configured → wa.me links (zero setup, works instantly)
+  // No bot configured ‚Üí wa.me links (zero setup, works instantly)
   showWaLinksModal(candidates, cfg, msgTemplate);
 }
 
@@ -2100,7 +2327,7 @@ function showWaLinksModal(candidates, cfg, msgTemplate) {
         <div style="font-size:12px;color:var(--text-muted)">${phone || 'No phone number'}</div>
       </div>
       ${phone
-        ? `<a href="${url}" target="_blank" rel="noopener" onclick="markMessaged(${c.id})" style="flex-shrink:0;display:inline-flex;align-items:center;gap:6px;background:#25D366;color:#fff;border:none;padding:8px 14px;border-radius:8px;font-size:12px;font-weight:600;text-decoration:none;cursor:pointer">📱 Open WhatsApp</a>`
+        ? `<a href="${url}" target="_blank" rel="noopener" onclick="markMessaged(${c.id})" style="flex-shrink:0;display:inline-flex;align-items:center;gap:6px;background:#25D366;color:#fff;border:none;padding:8px 14px;border-radius:8px;font-size:12px;font-weight:600;text-decoration:none;cursor:pointer">üì± Open WhatsApp</a>`
         : '<span style="font-size:12px;color:var(--danger);flex-shrink:0">No phone</span>'}
     </div>`;
   }).join('');
@@ -2112,14 +2339,14 @@ function showWaLinksModal(candidates, cfg, msgTemplate) {
     <div style="background:#fff;border-radius:16px;width:100%;max-width:480px;max-height:80vh;overflow:hidden;display:flex;flex-direction:column;box-shadow:0 24px 64px rgba(0,0,0,.3)">
       <div style="padding:20px 24px 16px;border-bottom:1px solid var(--border);display:flex;align-items:center;justify-content:space-between">
         <div>
-          <h3 style="font-size:16px;font-weight:700;color:var(--text)">📱 Send via WhatsApp</h3>
-          <p style="font-size:12px;color:var(--text-muted);margin-top:3px">Click each button — WhatsApp opens with the message ready to send</p>
+          <h3 style="font-size:16px;font-weight:700;color:var(--text)">üì± Send via WhatsApp</h3>
+          <p style="font-size:12px;color:var(--text-muted);margin-top:3px">Click each button ‚Äî WhatsApp opens with the message ready to send</p>
         </div>
         <button onclick="document.getElementById('wa-links-modal').remove()" style="background:none;border:none;font-size:22px;cursor:pointer;color:var(--text-muted);line-height:1;padding:2px 6px">&times;</button>
       </div>
       <div style="padding:16px 24px;overflow-y:auto;flex:1">${rows}</div>
       <div style="padding:12px 24px;border-top:1px solid var(--border);background:#f8faff;font-size:12px;color:var(--text-muted);text-align:center">
-        💡 WhatsApp opens with the message ready — just tap Send for each candidate
+        üí° WhatsApp opens with the message ready ‚Äî just tap Send for each candidate
       </div>
     </div>`;
   document.body.appendChild(modal);
@@ -2131,9 +2358,9 @@ function markMessaged(id) {
   if (c) { c.status = 'messaged'; saveJobs(); updateBadges(); }
 }
 
-// ─────────────────────────────────────────────
+// ‚îÄ‚îÄ‚îÄ‚îÄ‚îÄ‚îÄ‚îÄ‚îÄ‚îÄ‚îÄ‚îÄ‚îÄ‚îÄ‚îÄ‚îÄ‚îÄ‚îÄ‚îÄ‚îÄ‚îÄ‚îÄ‚îÄ‚îÄ‚îÄ‚îÄ‚îÄ‚îÄ‚îÄ‚îÄ‚îÄ‚îÄ‚îÄ‚îÄ‚îÄ‚îÄ‚îÄ‚îÄ‚îÄ‚îÄ‚îÄ‚îÄ‚îÄ‚îÄ‚îÄ‚îÄ
 //  CALENDAR VIEW
-// ─────────────────────────────────────────────
+// ‚îÄ‚îÄ‚îÄ‚îÄ‚îÄ‚îÄ‚îÄ‚îÄ‚îÄ‚îÄ‚îÄ‚îÄ‚îÄ‚îÄ‚îÄ‚îÄ‚îÄ‚îÄ‚îÄ‚îÄ‚îÄ‚îÄ‚îÄ‚îÄ‚îÄ‚îÄ‚îÄ‚îÄ‚îÄ‚îÄ‚îÄ‚îÄ‚îÄ‚îÄ‚îÄ‚îÄ‚îÄ‚îÄ‚îÄ‚îÄ‚îÄ‚îÄ‚îÄ‚îÄ‚îÄ
 function renderCalendar() {
   const content = document.getElementById('content');
   const shortlisted = job().candidates.filter(c => c.status === 'shortlisted' || c.status === 'messaged');
@@ -2142,21 +2369,21 @@ function renderCalendar() {
   content.innerHTML = `
   <div style="background:var(--card); border-radius:var(--radius); box-shadow:var(--shadow); padding:22px; margin-bottom:22px; display:flex; align-items:center; gap:20px">
     <div style="flex:1">
-      <h3 style="font-size:15px; font-weight:700; margin-bottom:4px">📅 Schedule Interviews via Topmate</h3>
+      <h3 style="font-size:15px; font-weight:700; margin-bottom:4px">üìÖ Schedule Interviews via Topmate</h3>
       <p style="font-size:13px; color:var(--text-muted)">Your booking link is <strong style="color:var(--primary)">${topmateBase}</strong>. Share it with shortlisted candidates or open the calendar directly.</p>
     </div>
     <div style="display:flex; gap:10px">
-      <a href="${topmateBase}" target="_blank" class="btn btn-primary">🔗 Open Topmate</a>
-      <button class="btn btn-outline" onclick="copyTopmateLink()">📋 Copy Link</button>
+      <a href="${topmateBase}" target="_blank" class="btn btn-primary">üîó Open Topmate</a>
+      <button class="btn btn-outline" onclick="copyTopmateLink()">üìã Copy Link</button>
     </div>
   </div>
 
   ${shortlisted.length === 0 ? `
-  <div class="empty-state"><div class="empty-icon">📅</div><p>Shortlist candidates first to see them here for scheduling.</p></div>
+  <div class="empty-state"><div class="empty-icon">üìÖ</div><p>Shortlist candidates first to see them here for scheduling.</p></div>
   ` : `
   <div style="margin-bottom:16px; display:flex; justify-content:space-between; align-items:center">
     <h3 style="font-size:15px; font-weight:700">${shortlisted.length} Candidates Ready to Schedule</h3>
-    <button class="btn btn-primary btn-sm" onclick="copyAllLinks()">📋 Copy All Links</button>
+    <button class="btn btn-primary btn-sm" onclick="copyAllLinks()">üìã Copy All Links</button>
   </div>
   <div class="cal-grid">
     ${shortlisted.map(c => {
@@ -2166,21 +2393,21 @@ function renderCalendar() {
         <div style="display:flex; align-items:flex-start; justify-content:space-between; gap:10px">
           <div>
             <div class="name">${escHtml(c.name)}</div>
-            <div class="role">${escHtml(c.role)} · ${escHtml(c.experience || '?')} yrs</div>
-            ${c.score ? `<div style="margin-top:6px"><span class="badge badge-shortlisted">⭐ ${c.score}% match</span></div>` : ''}
+            <div class="role">${escHtml(c.role)} ¬∑ ${escHtml(c.experience || '?')} yrs</div>
+            ${c.score ? `<div style="margin-top:6px"><span class="badge badge-shortlisted">‚≠ê ${c.score}% match</span></div>` : ''}
           </div>
-          <span class="badge ${c.status === 'messaged' ? 'badge-messaged' : 'badge-shortlisted'}">${c.status === 'messaged' ? '💬 Messaged' : '✓ Shortlisted'}</span>
+          <span class="badge ${c.status === 'messaged' ? 'badge-messaged' : 'badge-shortlisted'}">${c.status === 'messaged' ? 'üí¨ Messaged' : '‚úì Shortlisted'}</span>
         </div>
         <div style="margin-top:14px; display:flex; flex-direction:column; gap:8px">
           <a href="${topmateBase}" target="_blank" class="topmate-link">
-            📅 Book Interview Slot on Topmate
+            üìÖ Book Interview Slot on Topmate
           </a>
           <button class="btn btn-sm btn-outline" style="width:100%; justify-content:center" onclick="copyLink('${link}', '${c.name}')">
-            📋 Copy Personalized Link
+            üìã Copy Personalized Link
           </button>
           ${c.phone ? `
           <a href="https://wa.me/${c.phone.replace(/\D/g,'')}?text=${encodeURIComponent('Hi ' + c.name.split(' ')[0] + ', here is my interview booking link: ' + topmateBase)}" target="_blank" class="btn btn-wa btn-sm" style="width:100%; justify-content:center; text-decoration:none">
-            💬 Send Link via WhatsApp
+            üí¨ Send Link via WhatsApp
           </a>` : ''}
         </div>
       </div>`;
@@ -2191,67 +2418,67 @@ function renderCalendar() {
 function copyTopmateLink() {
   const link = `https://topmate.io/${state.cfg.topmate}`;
   navigator.clipboard.writeText(link);
-  toast('📋 Topmate link copied!', 'success');
+  toast('üìã Topmate link copied!', 'success');
 }
 function copyLink(link, name) {
   navigator.clipboard.writeText(link);
-  toast(`📋 Link for ${name} copied!`, 'success');
+  toast(`üìã Link for ${name} copied!`, 'success');
 }
 function copyAllLinks() {
   const shortlisted = job().candidates.filter(c => c.status === 'shortlisted' || c.status === 'messaged');
   const links = shortlisted.map(c => `${c.name}: https://topmate.io/${state.cfg.topmate}`).join('\n');
   navigator.clipboard.writeText(links);
-  toast(`📋 ${shortlisted.length} links copied!`, 'success');
+  toast(`üìã ${shortlisted.length} links copied!`, 'success');
 }
 
-// ─────────────────────────────────────────────
+// ‚îÄ‚îÄ‚îÄ‚îÄ‚îÄ‚îÄ‚îÄ‚îÄ‚îÄ‚îÄ‚îÄ‚îÄ‚îÄ‚îÄ‚îÄ‚îÄ‚îÄ‚îÄ‚îÄ‚îÄ‚îÄ‚îÄ‚îÄ‚îÄ‚îÄ‚îÄ‚îÄ‚îÄ‚îÄ‚îÄ‚îÄ‚îÄ‚îÄ‚îÄ‚îÄ‚îÄ‚îÄ‚îÄ‚îÄ‚îÄ‚îÄ‚îÄ‚îÄ‚îÄ‚îÄ
 //  ADMIN PANEL (krishna@nhrms.com only)
-// ─────────────────────────────────────────────
+// ‚îÄ‚îÄ‚îÄ‚îÄ‚îÄ‚îÄ‚îÄ‚îÄ‚îÄ‚îÄ‚îÄ‚îÄ‚îÄ‚îÄ‚îÄ‚îÄ‚îÄ‚îÄ‚îÄ‚îÄ‚îÄ‚îÄ‚îÄ‚îÄ‚îÄ‚îÄ‚îÄ‚îÄ‚îÄ‚îÄ‚îÄ‚îÄ‚îÄ‚îÄ‚îÄ‚îÄ‚îÄ‚îÄ‚îÄ‚îÄ‚îÄ‚îÄ‚îÄ‚îÄ‚îÄ
 function renderAdmin() {
   if (AUTH.user?.email !== 'krishna@nhrms.com') {
-    document.getElementById('content').innerHTML = `<div class="empty-state"><div class="empty-icon">🔒</div><p>Access restricted.</p></div>`;
+    document.getElementById('content').innerHTML = `<div class="empty-state"><div class="empty-icon">üîí</div><p>Access restricted.</p></div>`;
     return;
   }
   document.getElementById('content').innerHTML = `
   <div class="stats-row" id="admin-stats-row">
-    <div class="stat-card"><div class="stat-label">Total Users</div><div class="stat-value" style="color:var(--primary)">—</div><div class="stat-sub">registered</div></div>
-    <div class="stat-card"><div class="stat-label">Approved</div><div class="stat-value" style="color:var(--success)">—</div><div class="stat-sub">active access</div></div>
-    <div class="stat-card"><div class="stat-label">Pending</div><div class="stat-value" style="color:var(--warning)">—</div><div class="stat-sub">awaiting review</div></div>
-    <div class="stat-card"><div class="stat-label">Rejected</div><div class="stat-value" style="color:var(--danger)">—</div><div class="stat-sub">access denied</div></div>
+    <div class="stat-card"><div class="stat-label">Total Users</div><div class="stat-value" style="color:var(--primary)">‚Äî</div><div class="stat-sub">registered</div></div>
+    <div class="stat-card"><div class="stat-label">Approved</div><div class="stat-value" style="color:var(--success)">‚Äî</div><div class="stat-sub">active access</div></div>
+    <div class="stat-card"><div class="stat-label">Pending</div><div class="stat-value" style="color:var(--warning)">‚Äî</div><div class="stat-sub">awaiting review</div></div>
+    <div class="stat-card"><div class="stat-label">Rejected</div><div class="stat-value" style="color:var(--danger)">‚Äî</div><div class="stat-sub">access denied</div></div>
   </div>
 
   <div style="display:grid; grid-template-columns:1fr 1fr; gap:20px; margin-bottom:20px">
     <div class="card">
       <div class="card-header">
-        <div class="card-icon" style="background:var(--warning-light)">⏳</div>
+        <div class="card-icon" style="background:var(--warning-light)">‚è≥</div>
         <div>
           <h3>Pending Approvals</h3>
           <p>Users awaiting access review</p>
         </div>
-        <button class="btn btn-outline btn-sm" style="margin-left:auto" onclick="fetchAdminUsers()">🔄 Refresh</button>
+        <button class="btn btn-outline btn-sm" style="margin-left:auto" onclick="fetchAdminUsers()">üîÑ Refresh</button>
       </div>
       <div class="card-body" id="admin-pending-list">
-        <div style="text-align:center;padding:24px 0;color:var(--text-muted);font-size:13px">Loading…</div>
+        <div style="text-align:center;padding:24px 0;color:var(--text-muted);font-size:13px">Loading‚Ä¶</div>
       </div>
     </div>
 
     <div class="card">
       <div class="card-header">
-        <div class="card-icon" style="background:var(--success-light)">✅</div>
+        <div class="card-icon" style="background:var(--success-light)">‚úÖ</div>
         <div>
           <h3>Approved Users</h3>
           <p>Active team members with access</p>
         </div>
       </div>
       <div class="card-body" id="admin-approved-list">
-        <div style="text-align:center;padding:24px 0;color:var(--text-muted);font-size:13px">Loading…</div>
+        <div style="text-align:center;padding:24px 0;color:var(--text-muted);font-size:13px">Loading‚Ä¶</div>
       </div>
     </div>
   </div>
 
   <div class="card">
     <div class="card-header">
-      <div class="card-icon" style="background:#eff6ff">➕</div>
+      <div class="card-icon" style="background:#eff6ff">‚ûï</div>
       <div>
         <h3>Add User Directly</h3>
         <p>Grant access without waiting for a Google sign-in request</p>
@@ -2267,10 +2494,10 @@ function renderAdmin() {
           <label>Name (optional)</label>
           <input type="text" id="admin-add-name" placeholder="Full name" />
         </div>
-        <button class="btn btn-primary" onclick="adminAddUser()" style="flex-shrink:0; margin-bottom:0">➕ Add User</button>
+        <button class="btn btn-primary" onclick="adminAddUser()" style="flex-shrink:0; margin-bottom:0">‚ûï Add User</button>
       </div>
       <div style="margin-top:14px; padding:11px 14px; background:#f8faff; border-radius:9px; border:1.5px solid #e8ecff; font-size:12px; color:var(--text-muted); line-height:1.65">
-        💡 <strong>Apps Script update required</strong> for full admin features. Your Apps Script at
+        üí° <strong>Apps Script update required</strong> for full admin features. Your Apps Script at
         <code style="background:#e8ecff;padding:1px 5px;border-radius:4px">doPost</code>
         should handle actions: <code>list</code>, <code>approve</code>, <code>reject</code>, <code>add</code>.<br>
         Until then, Add User falls back to direct registration.
@@ -2289,12 +2516,12 @@ async function fetchAdminUsers() {
     const data = await r.json();
 
     if (!Array.isArray(data.users)) {
-      // Apps Script doesn't yet support 'list' — show placeholder
+      // Apps Script doesn't yet support 'list' ‚Äî show placeholder
       document.getElementById('admin-pending-list').innerHTML =
         `<p style="font-size:13px;color:var(--text-muted);line-height:1.6">Your Apps Script does not yet support <code>action='list'</code>.<br>
         Update it to return <code>{users:[{email,name,status,registered_at}]}</code> for full admin functionality.</p>`;
       document.getElementById('admin-approved-list').innerHTML =
-        `<p style="font-size:13px;color:var(--text-muted)">—</p>`;
+        `<p style="font-size:13px;color:var(--text-muted)">‚Äî</p>`;
       return;
     }
 
@@ -2321,10 +2548,10 @@ async function fetchAdminUsers() {
             <div style="font-size:12px;color:var(--text-muted)">${escHtml(u.email)}</div>
             ${u.registered_at ? `<div style="font-size:11px;color:var(--text-muted);margin-top:1px">${new Date(u.registered_at).toLocaleDateString()}</div>` : ''}
           </div>
-          <button class="btn btn-sm" style="background:var(--success-light);color:#166534;border:1.5px solid #bbf7d0;flex-shrink:0" onclick="adminApprove('${escHtml(u.email)}')">✓ Approve</button>
-          <button class="btn btn-sm" style="background:var(--danger-light);color:#991b1b;border:1.5px solid #fecaca;flex-shrink:0" onclick="adminReject('${escHtml(u.email)}')">✗ Reject</button>
+          <button class="btn btn-sm" style="background:var(--success-light);color:#166534;border:1.5px solid #bbf7d0;flex-shrink:0" onclick="adminApprove('${escHtml(u.email)}')">‚úì Approve</button>
+          <button class="btn btn-sm" style="background:var(--danger-light);color:#991b1b;border:1.5px solid #fecaca;flex-shrink:0" onclick="adminReject('${escHtml(u.email)}')">‚úó Reject</button>
         </div>`).join('')
-      : `<div style="text-align:center;padding:24px 0;color:var(--text-muted);font-size:13px">✅ No pending approvals</div>`;
+      : `<div style="text-align:center;padding:24px 0;color:var(--text-muted);font-size:13px">‚úÖ No pending approvals</div>`;
 
     document.getElementById('admin-approved-list').innerHTML = approved.length
       ? approved.map(u => `
@@ -2353,7 +2580,7 @@ async function adminApprove(email) {
       body: JSON.stringify({ action: 'approve', email, adminEmail: AUTH.user?.email })
     });
     const d = await r.json();
-    if (d.ok || d.status) { toast(`✅ ${email} approved`, 'success'); fetchAdminUsers(); }
+    if (d.ok || d.status) { toast(`‚úÖ ${email} approved`, 'success'); fetchAdminUsers(); }
     else toast('Response: ' + JSON.stringify(d).slice(0,100), 'error');
   } catch(e) { toast('Error: ' + e.message, 'error'); }
 }
@@ -2366,7 +2593,7 @@ async function adminReject(email) {
       body: JSON.stringify({ action: 'reject', email, adminEmail: AUTH.user?.email })
     });
     const d = await r.json();
-    if (d.ok || d.status) { toast(`✅ Access revoked for ${email}`, 'success'); fetchAdminUsers(); }
+    if (d.ok || d.status) { toast(`‚úÖ Access revoked for ${email}`, 'success'); fetchAdminUsers(); }
     else toast('Response: ' + JSON.stringify(d).slice(0,100), 'error');
   } catch(e) { toast('Error: ' + e.message, 'error'); }
 }
@@ -2383,7 +2610,7 @@ async function adminAddUser() {
     });
     const d = await r.json();
     if (d.ok || d.status === 'approved' || d.status === 'added') {
-      toast(`✅ ${email} added with access`, 'success');
+      toast(`‚úÖ ${email} added with access`, 'success');
       document.getElementById('admin-add-email').value = '';
       document.getElementById('admin-add-name').value = '';
       fetchAdminUsers();
@@ -2391,7 +2618,7 @@ async function adminAddUser() {
       // fallback: register + approve
       await fetch(APPROVAL_URL, { method: 'POST', body: JSON.stringify({ action: 'register', email, name, picture: '' }) });
       await fetch(APPROVAL_URL, { method: 'POST', body: JSON.stringify({ action: 'approve', email, adminEmail: AUTH.user?.email }) });
-      toast(`✅ ${email} added (via register+approve)`, 'success');
+      toast(`‚úÖ ${email} added (via register+approve)`, 'success');
       document.getElementById('admin-add-email').value = '';
       document.getElementById('admin-add-name').value = '';
       fetchAdminUsers();
@@ -2399,9 +2626,9 @@ async function adminAddUser() {
   } catch(e) { toast('Error: ' + e.message, 'error'); }
 }
 
-// ─────────────────────────────────────────────
+// ‚îÄ‚îÄ‚îÄ‚îÄ‚îÄ‚îÄ‚îÄ‚îÄ‚îÄ‚îÄ‚îÄ‚îÄ‚îÄ‚îÄ‚îÄ‚îÄ‚îÄ‚îÄ‚îÄ‚îÄ‚îÄ‚îÄ‚îÄ‚îÄ‚îÄ‚îÄ‚îÄ‚îÄ‚îÄ‚îÄ‚îÄ‚îÄ‚îÄ‚îÄ‚îÄ‚îÄ‚îÄ‚îÄ‚îÄ‚îÄ‚îÄ‚îÄ‚îÄ‚îÄ‚îÄ
 //  CLAUDE API
-// ─────────────────────────────────────────────
+// ‚îÄ‚îÄ‚îÄ‚îÄ‚îÄ‚îÄ‚îÄ‚îÄ‚îÄ‚îÄ‚îÄ‚îÄ‚îÄ‚îÄ‚îÄ‚îÄ‚îÄ‚îÄ‚îÄ‚îÄ‚îÄ‚îÄ‚îÄ‚îÄ‚îÄ‚îÄ‚îÄ‚îÄ‚îÄ‚îÄ‚îÄ‚îÄ‚îÄ‚îÄ‚îÄ‚îÄ‚îÄ‚îÄ‚îÄ‚îÄ‚îÄ‚îÄ‚îÄ‚îÄ‚îÄ
 async function callClaude(messages, systemPrompt, maxTokens = 1024) {
   const body = {
     model: 'claude-opus-4-6',
@@ -2429,9 +2656,9 @@ async function callClaude(messages, systemPrompt, maxTokens = 1024) {
   return data.content[0].text;
 }
 
-// ─────────────────────────────────────────────
+// ‚îÄ‚îÄ‚îÄ‚îÄ‚îÄ‚îÄ‚îÄ‚îÄ‚îÄ‚îÄ‚îÄ‚îÄ‚îÄ‚îÄ‚îÄ‚îÄ‚îÄ‚îÄ‚îÄ‚îÄ‚îÄ‚îÄ‚îÄ‚îÄ‚îÄ‚îÄ‚îÄ‚îÄ‚îÄ‚îÄ‚îÄ‚îÄ‚îÄ‚îÄ‚îÄ‚îÄ‚îÄ‚îÄ‚îÄ‚îÄ‚îÄ‚îÄ‚îÄ‚îÄ‚îÄ
 //  CONFIG
-// ─────────────────────────────────────────────
+// ‚îÄ‚îÄ‚îÄ‚îÄ‚îÄ‚îÄ‚îÄ‚îÄ‚îÄ‚îÄ‚îÄ‚îÄ‚îÄ‚îÄ‚îÄ‚îÄ‚îÄ‚îÄ‚îÄ‚îÄ‚îÄ‚îÄ‚îÄ‚îÄ‚îÄ‚îÄ‚îÄ‚îÄ‚îÄ‚îÄ‚îÄ‚îÄ‚îÄ‚îÄ‚îÄ‚îÄ‚îÄ‚îÄ‚îÄ‚îÄ‚îÄ‚îÄ‚îÄ‚îÄ‚îÄ
 function saveConfig() {
   state.cfg.claudeKey = document.getElementById('cfg-claude-key')?.value || document.getElementById('quick-claude-key')?.value || state.cfg.claudeKey;
   state.cfg.topmate = document.getElementById('cfg-topmate')?.value || document.getElementById('quick-topmate')?.value || state.cfg.topmate;
@@ -2440,12 +2667,12 @@ function saveConfig() {
   state.cfg.greenToken = document.getElementById('cfg-green-token')?.value || state.cfg.greenToken;
   localStorage.setItem('nhrms_cfg', JSON.stringify(state.cfg));
   document.getElementById('config-modal').classList.remove('show');
-  toast('✅ Settings saved!', 'success');
+  toast('‚úÖ Settings saved!', 'success');
 }
 
-// ─────────────────────────────────────────────
+// ‚îÄ‚îÄ‚îÄ‚îÄ‚îÄ‚îÄ‚îÄ‚îÄ‚îÄ‚îÄ‚îÄ‚îÄ‚îÄ‚îÄ‚îÄ‚îÄ‚îÄ‚îÄ‚îÄ‚îÄ‚îÄ‚îÄ‚îÄ‚îÄ‚îÄ‚îÄ‚îÄ‚îÄ‚îÄ‚îÄ‚îÄ‚îÄ‚îÄ‚îÄ‚îÄ‚îÄ‚îÄ‚îÄ‚îÄ‚îÄ‚îÄ‚îÄ‚îÄ‚îÄ‚îÄ
 //  HELPERS
-// ─────────────────────────────────────────────
+// ‚îÄ‚îÄ‚îÄ‚îÄ‚îÄ‚îÄ‚îÄ‚îÄ‚îÄ‚îÄ‚îÄ‚îÄ‚îÄ‚îÄ‚îÄ‚îÄ‚îÄ‚îÄ‚îÄ‚îÄ‚îÄ‚îÄ‚îÄ‚îÄ‚îÄ‚îÄ‚îÄ‚îÄ‚îÄ‚îÄ‚îÄ‚îÄ‚îÄ‚îÄ‚îÄ‚îÄ‚îÄ‚îÄ‚îÄ‚îÄ‚îÄ‚îÄ‚îÄ‚îÄ‚îÄ
 function escHtml(s) { return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;'); }
 
 function toast(msg, type = '') {
@@ -2463,9 +2690,9 @@ function updateBadges() {
   document.getElementById('badge-cal').textContent = job().candidates.filter(c => c.status === 'shortlisted' || c.status === 'messaged').length;
 }
 
-// ─────────────────────────────────────────────
+// ‚îÄ‚îÄ‚îÄ‚îÄ‚îÄ‚îÄ‚îÄ‚îÄ‚îÄ‚îÄ‚îÄ‚îÄ‚îÄ‚îÄ‚îÄ‚îÄ‚îÄ‚îÄ‚îÄ‚îÄ‚îÄ‚îÄ‚îÄ‚îÄ‚îÄ‚îÄ‚îÄ‚îÄ‚îÄ‚îÄ‚îÄ‚îÄ‚îÄ‚îÄ‚îÄ‚îÄ‚îÄ‚îÄ‚îÄ‚îÄ‚îÄ‚îÄ‚îÄ‚îÄ‚îÄ
 //  INIT
-// ─────────────────────────────────────────────
+// ‚îÄ‚îÄ‚îÄ‚îÄ‚îÄ‚îÄ‚îÄ‚îÄ‚îÄ‚îÄ‚îÄ‚îÄ‚îÄ‚îÄ‚îÄ‚îÄ‚îÄ‚îÄ‚îÄ‚îÄ‚îÄ‚îÄ‚îÄ‚îÄ‚îÄ‚îÄ‚îÄ‚îÄ‚îÄ‚îÄ‚îÄ‚îÄ‚îÄ‚îÄ‚îÄ‚îÄ‚îÄ‚îÄ‚îÄ‚îÄ‚îÄ‚îÄ‚îÄ‚îÄ‚îÄ
 // prefill config modal from state
 document.getElementById('cfg-claude-key').value = state.cfg.claudeKey;
 document.getElementById('cfg-topmate').value = state.cfg.topmate;
@@ -2477,9 +2704,9 @@ renderJobSelect();
 navigate('setup');
 updateBadges();
 
-// ─────────────────────────────────────────────
+// ‚îÄ‚îÄ‚îÄ‚îÄ‚îÄ‚îÄ‚îÄ‚îÄ‚îÄ‚îÄ‚îÄ‚îÄ‚îÄ‚îÄ‚îÄ‚îÄ‚îÄ‚îÄ‚îÄ‚îÄ‚îÄ‚îÄ‚îÄ‚îÄ‚îÄ‚îÄ‚îÄ‚îÄ‚îÄ‚îÄ‚îÄ‚îÄ‚îÄ‚îÄ‚îÄ‚îÄ‚îÄ‚îÄ‚îÄ‚îÄ‚îÄ‚îÄ‚îÄ‚îÄ‚îÄ
 //  FLOATING WHATSAPP CHAT WINDOW
-// ─────────────────────────────────────────────
+// ‚îÄ‚îÄ‚îÄ‚îÄ‚îÄ‚îÄ‚îÄ‚îÄ‚îÄ‚îÄ‚îÄ‚îÄ‚îÄ‚îÄ‚îÄ‚îÄ‚îÄ‚îÄ‚îÄ‚îÄ‚îÄ‚îÄ‚îÄ‚îÄ‚îÄ‚îÄ‚îÄ‚îÄ‚îÄ‚îÄ‚îÄ‚îÄ‚îÄ‚îÄ‚îÄ‚îÄ‚îÄ‚îÄ‚îÄ‚îÄ‚îÄ‚îÄ‚îÄ‚îÄ‚îÄ
 let _chatWin = null;
 let _chatActiveChatId = null;
 let _chatWinPolling = null;
@@ -2503,17 +2730,17 @@ function openChatWindow() {
   _chatWin.innerHTML = `
     <!-- TITLE BAR -->
     <div id="wa-chat-header" style="background:#1a1d2e; color:#fff; padding:12px 16px; display:flex; align-items:center; gap:10px; cursor:grab; user-select:none; flex-shrink:0">
-      <div style="width:36px; height:36px; border-radius:50%; background:#25D366; display:flex; align-items:center; justify-content:center; font-size:18px; flex-shrink:0">💬</div>
+      <div style="width:36px; height:36px; border-radius:50%; background:#25D366; display:flex; align-items:center; justify-content:center; font-size:18px; flex-shrink:0">üí¨</div>
       <div style="flex:1; min-width:0">
         <div style="font-size:13px; font-weight:700">WhatsApp Chat</div>
-        <div id="wa-win-status" style="font-size:11px; opacity:.65">${state.botMode ? '🤖 Bot active' : 'Manual mode'}</div>
+        <div id="wa-win-status" style="font-size:11px; opacity:.65">${state.botMode ? 'ü§ñ Bot active' : 'Manual mode'}</div>
       </div>
       <div style="display:flex; gap:6px; align-items:center">
         <button onclick="toggleBotModeWin()" title="Toggle bot" style="background:${state.botMode?'#25D366':'#374151'};border:none;border-radius:6px;color:#fff;font-size:11px;padding:4px 8px;cursor:pointer">
-          🤖 ${state.botMode ? 'ON' : 'OFF'}
+          ü§ñ ${state.botMode ? 'ON' : 'OFF'}
         </button>
-        <button onclick="chatWinPollOnce()" title="Refresh" style="background:#374151;border:none;border-radius:6px;color:#fff;font-size:11px;padding:4px 8px;cursor:pointer">🔄</button>
-        <button onclick="document.getElementById('wa-chat-window').style.display='none'" style="background:none;border:none;color:rgba(255,255,255,.6);font-size:18px;cursor:pointer;padding:0 4px;line-height:1">✕</button>
+        <button onclick="chatWinPollOnce()" title="Refresh" style="background:#374151;border:none;border-radius:6px;color:#fff;font-size:11px;padding:4px 8px;cursor:pointer">üîÑ</button>
+        <button onclick="document.getElementById('wa-chat-window').style.display='none'" style="background:none;border:none;color:rgba(255,255,255,.6);font-size:18px;cursor:pointer;padding:0 4px;line-height:1">‚úï</button>
       </div>
     </div>
 
@@ -2526,11 +2753,11 @@ function openChatWindow() {
       <div style="flex:1; display:flex; flex-direction:column; overflow:hidden">
         <div id="wa-win-thread" style="flex:1; overflow-y:auto; padding:14px; background:#efeae4"></div>
         <div id="wa-win-reply" style="padding:10px 12px; border-top:1px solid #e2e8f0; display:flex; gap:8px; background:#fff; flex-shrink:0">
-          <input id="wa-win-input" type="text" placeholder="Type a message…"
+          <input id="wa-win-input" type="text" placeholder="Type a message‚Ä¶"
             style="flex:1; padding:8px 12px; border:1px solid #e2e8f0; border-radius:20px; font-size:13px; outline:none; font-family:inherit"
             onkeydown="if(event.key==='Enter') chatWinSend()" />
-          <button onclick="chatWinSend()" style="background:#25D366;border:none;border-radius:50%;width:38px;height:38px;color:#fff;font-size:16px;cursor:pointer;display:flex;align-items:center;justify-content:center;flex-shrink:0">➤</button>
-          ${state.cfg.claudeKey ? `<button onclick="chatWinAI()" title="AI draft reply" style="background:#6c47d4;border:none;border-radius:50%;width:38px;height:38px;color:#fff;font-size:14px;cursor:pointer;display:flex;align-items:center;justify-content:center;flex-shrink:0">🤖</button>` : ''}
+          <button onclick="chatWinSend()" style="background:#25D366;border:none;border-radius:50%;width:38px;height:38px;color:#fff;font-size:16px;cursor:pointer;display:flex;align-items:center;justify-content:center;flex-shrink:0">‚û§</button>
+          ${state.cfg.claudeKey ? `<button onclick="chatWinAI()" title="AI draft reply" style="background:#6c47d4;border:none;border-radius:50%;width:38px;height:38px;color:#fff;font-size:14px;cursor:pointer;display:flex;align-items:center;justify-content:center;flex-shrink:0">ü§ñ</button>` : ''}
         </div>
       </div>
     </div>
@@ -2568,7 +2795,7 @@ function chatWinRenderContacts() {
     if (seen.has(m.from)) return false; seen.add(m.from); return true;
   });
   if (!contacts.length) {
-    el.innerHTML = `<div style="padding:20px 12px; font-size:12px; color:#64748b; text-align:center; line-height:1.6">No conversations yet.<br>Send a message to a candidate — their reply will appear here.</div>`;
+    el.innerHTML = `<div style="padding:20px 12px; font-size:12px; color:#64748b; text-align:center; line-height:1.6">No conversations yet.<br>Send a message to a candidate ‚Äî their reply will appear here.</div>`;
     return;
   }
   el.innerHTML = contacts.map(m => {
@@ -2578,14 +2805,14 @@ function chatWinRenderContacts() {
     const isActive = _chatActiveChatId === m.from;
     return `<div onclick="chatWinSelectContact('${m.from}')"
       style="padding:12px 14px; display:flex; gap:10px; align-items:center; cursor:pointer; border-bottom:1px solid #e2e8f0; background:${isActive ? '#eff6ff' : '#fff'}; transition:background .1s">
-      <div style="width:40px; height:40px; border-radius:50%; background:#d1fae5; display:flex; align-items:center; justify-content:center; font-size:16px; flex-shrink:0">👤</div>
+      <div style="width:40px; height:40px; border-radius:50%; background:#d1fae5; display:flex; align-items:center; justify-content:center; font-size:16px; flex-shrink:0">üë§</div>
       <div style="flex:1; min-width:0">
         <div style="display:flex; justify-content:space-between; align-items:center">
           <span style="font-size:13px; font-weight:600; color:#1e293b; overflow:hidden; text-overflow:ellipsis; white-space:nowrap">${escHtml(m.senderName || m.from.replace('@c.us',''))}</span>
           ${unread ? `<span style="background:#25D366;color:#fff;border-radius:10px;font-size:10px;padding:1px 6px;font-weight:700;flex-shrink:0">${unread}</span>` : `<span style="font-size:10px;color:#94a3b8">${new Date(m.time).toLocaleTimeString([],{hour:'2-digit',minute:'2-digit'})}</span>`}
         </div>
         <div style="font-size:12px; color:#64748b; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; margin-top:2px">
-          ${last ? (last.role === 'assistant' ? '🤖 ' : '') + escHtml(last.content.slice(0,45)) : escHtml(m.text.slice(0,45))}
+          ${last ? (last.role === 'assistant' ? 'ü§ñ ' : '') + escHtml(last.content.slice(0,45)) : escHtml(m.text.slice(0,45))}
         </div>
       </div>
     </div>`;
@@ -2615,7 +2842,7 @@ function chatWinRenderThread() {
         font-size:13px; line-height:1.5; color:#1e293b; white-space:pre-wrap; word-break:break-word">
         ${escHtml(t.content)}
         <div style="font-size:10px; color:#94a3b8; margin-top:4px; text-align:right">
-          ${isBot ? '🤖 Bot · ' : ''}${new Date(t.time).toLocaleTimeString([],{hour:'2-digit',minute:'2-digit'})}
+          ${isBot ? 'ü§ñ Bot ¬∑ ' : ''}${new Date(t.time).toLocaleTimeString([],{hour:'2-digit',minute:'2-digit'})}
         </div>
       </div>
     </div>`;
@@ -2644,7 +2871,7 @@ async function chatWinAI() {
   const lastUser = [...thread].reverse().find(t => t.role === 'user');
   if (!lastUser) return;
   const inp = document.getElementById('wa-win-input');
-  if (inp) inp.value = '…generating…';
+  if (inp) inp.value = '‚Ä¶generating‚Ä¶';
   await autoBotReply(_chatActiveChatId, '', lastUser.content);
   if (inp) inp.value = '';
   chatWinRenderThread();
@@ -2659,7 +2886,7 @@ function chatWinStartPoll() {
     chatWinRenderThread();
     chatWinRenderContacts();
     const statusEl = document.getElementById('wa-win-status');
-    if (statusEl) statusEl.textContent = state.botMode ? '🤖 Bot active · last check ' + new Date().toLocaleTimeString([], {hour:'2-digit',minute:'2-digit'}) : 'Polling · ' + new Date().toLocaleTimeString([],{hour:'2-digit',minute:'2-digit'});
+    if (statusEl) statusEl.textContent = state.botMode ? 'ü§ñ Bot active ¬∑ last check ' + new Date().toLocaleTimeString([], {hour:'2-digit',minute:'2-digit'}) : 'Polling ¬∑ ' + new Date().toLocaleTimeString([],{hour:'2-digit',minute:'2-digit'});
   }, 8000);
 }
 
@@ -2670,12 +2897,12 @@ function chatWinPollOnce() {
 function toggleBotModeWin() {
   toggleBotMode(!state.botMode);
   const btn = document.querySelector('#wa-chat-window button[onclick="toggleBotModeWin()"]');
-  if (btn) { btn.textContent = `🤖 ${state.botMode ? 'ON' : 'OFF'}`; btn.style.background = state.botMode ? '#25D366' : '#374151'; }
+  if (btn) { btn.textContent = `ü§ñ ${state.botMode ? 'ON' : 'OFF'}`; btn.style.background = state.botMode ? '#25D366' : '#374151'; }
   const status = document.getElementById('wa-win-status');
-  if (status) status.textContent = state.botMode ? '🤖 Bot active' : 'Manual mode';
+  if (status) status.textContent = state.botMode ? 'ü§ñ Bot active' : 'Manual mode';
 }
 
-// ── AUTH INIT ──
+// ‚îÄ‚îÄ AUTH INIT ‚îÄ‚îÄ
 // Check for existing session
 try {
   const saved = sessionStorage.getItem('nhrms_user');
