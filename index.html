@@ -1578,8 +1578,11 @@ async function sendWhatsAppMessages() {
       const chatId = `${phone}@c.us`;
       const message = WA_TEMPLATES[activeTemplate](c, cfg);
       try {
+        // Use instance-specific API host (first 4 digits of instance ID = server prefix)
+        const apiHost = state.cfg.greenApiUrl ||
+          `https://${String(state.cfg.greenInstance).slice(0,4)}.api.greenapi.com`;
         const res = await fetch(
-          `https://api.green-api.com/waInstance${state.cfg.greenInstance}/sendMessage/${state.cfg.greenToken}`,
+          `${apiHost}/waInstance${state.cfg.greenInstance}/sendMessage/${state.cfg.greenToken}`,
           { method: 'POST', headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({ chatId, message }) }
         );
