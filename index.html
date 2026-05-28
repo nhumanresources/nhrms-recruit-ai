@@ -625,8 +625,9 @@
           <input type="password" id="cfg-green-token" placeholder="your-api-token" />
         </div>
       </div>
-      <div style="margin-top:16px; display:flex; gap:10px;">
+      <div style="margin-top:16px; display:flex; gap:10px; flex-wrap:wrap">
         <button class="btn btn-primary" onclick="saveConfig()">💾 Save Configuration</button>
+        <button class="btn btn-outline" onclick="testGreenAPI()" style="color:#25D366;border-color:#25D366">🔌 Test WhatsApp</button>
         <button class="btn btn-outline" onclick="document.getElementById('config-modal').classList.remove('show')">Cancel</button>
       </div>
     </div>
@@ -832,7 +833,7 @@ function showLoginError(msg) {
 //  STATE
 // ─────────────────────────────────────────────
 function makeJob(title = 'New Position') {
-  return { id: Date.now(), title, jd: '', candidates: [], waSelected: new Set(), chatHistory: [] };
+  return { id: Date.now(), title, jd: '', candidates: [], waSelected: new Set(), chatHistory: [], waCustomMsg: null, inbox: [] };
 }
 
 const state = {
@@ -858,7 +859,8 @@ function job() {
 function saveJobs() {
   const serialized = state.jobs.map(j => ({
     ...j,
-    waSelected: [...j.waSelected]
+    waSelected: [...j.waSelected],
+    inbox: j.inbox || []
   }));
   localStorage.setItem('nhrms_jobs', JSON.stringify(serialized));
 }
@@ -868,7 +870,7 @@ function loadJobs() {
   try {
     const raw = JSON.parse(localStorage.getItem('nhrms_jobs') || '[]');
     if (raw.length) {
-      state.jobs = raw.map(j => ({ ...j, waSelected: new Set(j.waSelected || []) }));
+      state.jobs = raw.map(j => ({ inbox: [], waCustomMsg: null, ...j, waSelected: new Set(j.waSelected || []) }));
       state.activeJobId = state.jobs[0].id;
       return;
     }
@@ -1471,15 +1473,68 @@ ${cfg.recruiterName} | NHRMS`
 
 let activeTemplate = 'shortlist';
 
+// ── template helper: convert function to editable string with {name} placeholders ──
+function templateToStr(key, cfg) {
+  const dummy = { name: '{name}', role: '{role}', score: '' };
+  return WA_TEMPLATES[key](dummy, {
+    ...cfg,
+    jdTitle: '{jd_title}',
+    topmateLink: '{topmate_link}',
+    recruiterName: '{recruiter}'
+  });
+}
+
+// ── substitute {vars} at send time ──
+function applyVars(tpl, c, cfg) {
+  return tpl
+    .replace(/\{name\}/g, (c.name || 'Candidate').split(' ')[0])
+    .replace(/\{full_name\}/g, c.name || 'Candidate')
+    .replace(/\{role\}/g, c.role || '')
+    .replace(/\{jd_title\}/g, cfg.jdTitle || 'the position')
+    .replace(/\{topmate_link\}/g, cfg.topmateLink || '')
+    .replace(/\{recruiter\}/g, cfg.recruiterName || 'Recruiter');
+}
+
+function getGreenApiHost() {
+  return state.cfg.greenApiUrl ||
+    `https://${String(state.cfg.greenInstance).slice(0,4)}.api.greenapi.com`;
+}
+
+// ── Test Green API connection ──
+async function testGreenAPI() {
+  const inst = document.getElementById('cfg-green-instance')?.value || state.cfg.greenInstance;
+  const tok  = document.getElementById('cfg-green-token')?.value  || state.cfg.greenToken;
+  if (!inst || !tok) { toast('Enter Instance ID and Token first', 'error'); return; }
+  const host = `https://${String(inst).slice(0,4)}.api.greenapi.com`;
+  try {
+    toast('Testing connection…');
+    const res = await fetch(`${host}/waInstance${inst}/getStateInstance/${tok}`);
+    const data = await res.json();
+    if (data.stateInstance === 'authorized') {
+      toast('✅ WhatsApp connected & authorized!', 'success');
+    } else {
+      toast(`⚠️ State: ${data.stateInstance || JSON.stringify(data)}`, 'error');
+    }
+  } catch(e) {
+    toast(`❌ Connection failed: ${e.message}`, 'error');
+  }
+}
+
 function renderWhatsApp() {
   const content = document.getElementById('content');
   const shortlisted = job().candidates.filter(c => c.status === 'shortlisted' || c.status === 'new');
   const cfg = { ...state.cfg, jdTitle: extractJDTitle(), topmateLink: `https://topmate.io/${state.cfg.topmate}` };
+  const hasBot = !!(state.cfg.greenInstance && state.cfg.greenToken);
 
   if (!shortlisted.length) {
     content.innerHTML = `<div class="empty-state"><div class="empty-icon">💬</div><p>No candidates to message. Run AI Screening first or upload candidates.</p></div>`;
     return;
   }
+
+  // editable message: use job custom or derive from template
+  const editableMsg = job().waCustomMsg != null ? job().waCustomMsg : templateToStr(activeTemplate, cfg);
+
+  const inbox = (job().inbox || []).slice().reverse();
 
   content.innerHTML = `
   <div class="wa-layout">
@@ -1487,7 +1542,7 @@ function renderWhatsApp() {
       <div style="display:flex; align-items:center; justify-content:space-between; margin-bottom:14px">
         <div>
           <h3 style="font-size:15px; font-weight:700">${shortlisted.length} Candidates</h3>
-          <p style="font-size:12.5px; color:var(--text-muted); margin-top:2px">Select candidates and click Send — opens WhatsApp with message pre-filled</p>
+          <p style="font-size:12.5px; color:var(--text-muted); margin-top:2px">Select candidates to message</p>
         </div>
         <div style="display:flex; gap:10px">
           <button class="btn btn-outline btn-sm" onclick="selectAllWA(true)">Select All</button>
@@ -1508,32 +1563,189 @@ function renderWhatsApp() {
           <span class="badge ${c.status === 'shortlisted' ? 'badge-shortlisted' : c.status === 'messaged' ? 'badge-messaged' : 'badge-new'}">${c.status === 'messaged' ? '✓ Sent' : c.status}</span>
         </div>`).join('')}
       </div>
+
+      <!-- INBOX -->
+      ${hasBot ? `
+      <div class="card" style="margin-top:16px">
+        <div class="card-header" style="cursor:pointer" onclick="this.nextElementSibling.style.display=this.nextElementSibling.style.display==='none'?'block':'none'">
+          <div class="card-icon" style="background:#dcfce7">📥</div>
+          <div style="flex:1">
+            <h3>Inbox — Candidate Replies</h3>
+            <p>${inbox.length} message${inbox.length !== 1 ? 's' : ''} received</p>
+          </div>
+          <div style="display:flex;gap:8px;align-items:center">
+            <button class="btn btn-outline btn-sm" onclick="event.stopPropagation();pollInbox(true)" style="font-size:11px">🔄 Refresh</button>
+            <button class="btn btn-outline btn-sm" onclick="event.stopPropagation();startInboxPolling()" style="font-size:11px;color:#25D366;border-color:#25D366">▶ Auto-poll</button>
+          </div>
+        </div>
+        <div class="card-body" id="inbox-body">
+          ${inbox.length === 0 ? `<p style="font-size:13px;color:var(--text-muted);text-align:center;padding:16px 0">No replies yet — click Refresh to check</p>` :
+            inbox.map(m => `
+            <div style="border:1px solid var(--border);border-radius:8px;padding:12px;margin-bottom:8px">
+              <div style="display:flex;justify-content:space-between;margin-bottom:4px">
+                <strong style="font-size:13px">${escHtml(m.senderName || m.from)}</strong>
+                <span style="font-size:11px;color:var(--text-muted)">${new Date(m.time).toLocaleTimeString()}</span>
+              </div>
+              <div style="font-size:13px;color:var(--text);white-space:pre-wrap;margin-bottom:10px">${escHtml(m.text)}</div>
+              <div style="display:flex;gap:8px">
+                <input type="text" id="reply-${m.id}" placeholder="Type reply…"
+                  style="flex:1;padding:6px 10px;border:1px solid var(--border);border-radius:6px;font-size:12px;outline:none"
+                  onkeydown="if(event.key==='Enter')sendReply('${m.from}',document.getElementById('reply-${m.id}').value)" />
+                <button class="btn btn-outline btn-sm" onclick="sendReply('${m.from}',document.getElementById('reply-${m.id}').value)">Send</button>
+                ${state.cfg.claudeKey ? `<button class="btn btn-sm" style="background:#6c47d4;color:#fff;border:none;cursor:pointer" onclick="aiReply('${m.from}',${JSON.stringify(m.text).replace(/'/g,"&#39;")})">🤖 AI</button>` : ''}
+              </div>
+            </div>`).join('')}
+        </div>
+      </div>` : `<div style="margin-top:16px;padding:12px 16px;background:var(--warning-light);border-radius:8px;font-size:12.5px;color:#92400e">
+        💡 Add Green API credentials in ⚙️ Settings to enable inbox & auto-reply
+      </div>`}
     </div>
 
     <div>
       <div class="wa-panel">
-        <h3>💬 Message Template</h3>
+        <h3>✏️ Message (Editable)</h3>
         <div class="template-tabs">
           <div class="template-tab ${activeTemplate === 'shortlist' ? 'active' : ''}" onclick="setTemplate('shortlist')">🎉 Shortlist</div>
           <div class="template-tab ${activeTemplate === 'followup' ? 'active' : ''}" onclick="setTemplate('followup')">🔄 Follow-up</div>
-          <div class="template-tab ${activeTemplate === 'info' ? 'active' : ''}" onclick="setTemplate('info')">ℹ️ Info Request</div>
+          <div class="template-tab ${activeTemplate === 'info' ? 'active' : ''}" onclick="setTemplate('info')">ℹ️ Info</div>
         </div>
-        <div class="msg-preview" id="wa-preview">${escHtml(WA_TEMPLATES[activeTemplate]({ name: 'Candidate' }, cfg))}</div>
-        <div style="font-size:12px; color:var(--text-muted); margin-bottom:14px">
-          ✅ Name is auto-personalized for each candidate
+        <textarea id="wa-msg-editor"
+          style="width:100%;min-height:220px;padding:12px;border:1px solid var(--border);border-radius:8px;font-size:12.5px;line-height:1.6;resize:vertical;font-family:inherit;color:var(--text);background:#fff;outline:none;box-sizing:border-box"
+          oninput="job().waCustomMsg=this.value;saveJobs()"
+          placeholder="Edit your message here…">${escHtml(editableMsg)}</textarea>
+        <div style="font-size:11px; color:var(--text-muted); margin:6px 0 14px; line-height:1.6">
+          Variables: <code>{name}</code> <code>{role}</code> <code>{jd_title}</code> <code>{topmate_link}</code> <code>{recruiter}</code><br>
+          <button style="background:none;border:none;color:var(--primary);font-size:11px;cursor:pointer;padding:0" onclick="resetTemplate()">↺ Reset to default</button>
         </div>
         <div id="wa-send-info" style="background:var(--primary-light); border-radius:8px; padding:10px 14px; font-size:12.5px; color:var(--primary); margin-bottom:14px">
-          <strong>${job().waSelected.size} selected</strong> — ${state.cfg.greenInstance && state.cfg.greenToken ? '🤖 will send automatically via bot' : 'opens WhatsApp with message pre-filled'}
+          <strong>${job().waSelected.size} selected</strong> — ${hasBot ? '🤖 sends via bot automatically' : 'opens WhatsApp with message pre-filled'}
         </div>
         <button class="btn btn-wa" style="width:100%; justify-content:center; padding:12px" onclick="sendWhatsAppMessages()" id="wa-send-btn">
           📱 Send to ${job().waSelected.size} Candidate${job().waSelected.size !== 1 ? 's' : ''}
         </button>
         <div style="margin-top:12px; font-size:12px; color:var(--text-muted); text-align:center">
-          ${state.cfg.greenInstance && state.cfg.greenToken ? '✅ WhatsApp bot connected — messages send automatically' : '💡 Add Green API credentials in ⚙️ Settings to enable auto-send'}
+          ${hasBot ? '✅ WhatsApp bot connected — messages send automatically' : '💡 Add Green API credentials in ⚙️ Settings to enable auto-send'}
         </div>
       </div>
     </div>
   </div>`;
+}
+
+function resetTemplate() {
+  job().waCustomMsg = null;
+  saveJobs();
+  renderWhatsApp();
+}
+
+// ── Inbox polling ──
+let _inboxPollingTimer = null;
+
+async function pollInbox(once = false) {
+  if (!state.cfg.greenInstance || !state.cfg.greenToken) return;
+  const host = getGreenApiHost();
+  try {
+    const res = await fetch(`${host}/waInstance${state.cfg.greenInstance}/receiveNotification/${state.cfg.greenToken}`);
+    if (!res.ok) { console.warn('pollInbox HTTP', res.status); return; }
+    const data = await res.json();
+    if (!data) { if (!once) _inboxPollingTimer = setTimeout(pollInbox, 12000); return; }
+
+    // process incoming text message
+    if (data.body?.typeWebhook === 'incomingMessageReceived') {
+      const txt = data.body.messageData?.textMessageData?.textMessage;
+      if (txt) {
+        const msg = {
+          id: data.body.idMessage || Date.now(),
+          from: data.body.senderData?.chatId || '',
+          senderName: data.body.senderData?.senderName || data.body.senderData?.chatId || '',
+          text: txt,
+          time: (data.body.timestamp || Date.now()/1000) * 1000
+        };
+        job().inbox = job().inbox || [];
+        // avoid duplicates
+        if (!job().inbox.find(m => m.id === msg.id)) {
+          job().inbox.push(msg);
+          saveJobs();
+          toast(`📩 Reply from ${msg.senderName}: ${msg.text.slice(0,50)}`, 'success');
+          renderInboxSection();
+        }
+      }
+    }
+    // acknowledge
+    await fetch(`${host}/waInstance${state.cfg.greenInstance}/deleteNotification/${state.cfg.greenToken}/${data.receiptId}`, { method: 'DELETE' });
+    // poll again immediately (might be more)
+    pollInbox(once);
+  } catch(e) {
+    console.warn('pollInbox error', e);
+    if (!once) _inboxPollingTimer = setTimeout(pollInbox, 15000);
+  }
+}
+
+function startInboxPolling() {
+  clearTimeout(_inboxPollingTimer);
+  pollInbox();
+  toast('📡 Auto-polling for replies every 12s');
+}
+
+function renderInboxSection() {
+  const body = document.getElementById('inbox-body');
+  if (!body) return;
+  const inbox = (job().inbox || []).slice().reverse();
+  if (!inbox.length) { body.innerHTML = '<p style="font-size:13px;color:var(--text-muted);text-align:center;padding:16px 0">No replies yet — click Refresh to check</p>'; return; }
+  body.innerHTML = inbox.map(m => `
+    <div style="border:1px solid var(--border);border-radius:8px;padding:12px;margin-bottom:8px">
+      <div style="display:flex;justify-content:space-between;margin-bottom:4px">
+        <strong style="font-size:13px">${escHtml(m.senderName || m.from)}</strong>
+        <span style="font-size:11px;color:var(--text-muted)">${new Date(m.time).toLocaleTimeString()}</span>
+      </div>
+      <div style="font-size:13px;color:var(--text);white-space:pre-wrap;margin-bottom:10px">${escHtml(m.text)}</div>
+      <div style="display:flex;gap:8px">
+        <input type="text" id="reply-${m.id}" placeholder="Type reply…"
+          style="flex:1;padding:6px 10px;border:1px solid var(--border);border-radius:6px;font-size:12px;outline:none"
+          onkeydown="if(event.key==='Enter')sendReply('${m.from}',document.getElementById('reply-${m.id}').value)" />
+        <button class="btn btn-outline btn-sm" onclick="sendReply('${m.from}',document.getElementById('reply-${m.id}').value)">Send</button>
+        ${state.cfg.claudeKey ? `<button class="btn btn-sm" style="background:#6c47d4;color:#fff;border:none;border-radius:6px;padding:6px 12px;cursor:pointer;font-size:12px" onclick="aiReply('${m.from}','${m.text.replace(/'/g,"\\'")}')">🤖 AI</button>` : ''}
+      </div>
+    </div>`).join('');
+}
+
+async function sendReply(chatId, text) {
+  if (!text?.trim()) return;
+  const host = getGreenApiHost();
+  try {
+    const res = await fetch(`${host}/waInstance${state.cfg.greenInstance}/sendMessage/${state.cfg.greenToken}`,
+      { method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify({ chatId, message: text }) });
+    const data = await res.json();
+    if (data.idMessage) toast('✅ Reply sent!', 'success');
+    else toast('❌ Reply failed: ' + JSON.stringify(data), 'error');
+  } catch(e) { toast('❌ ' + e.message, 'error'); }
+}
+
+async function aiReply(chatId, incomingText) {
+  if (!state.cfg.claudeKey) { toast('Add Claude API key in Settings first', 'error'); return; }
+  const cfg = { ...state.cfg, jdTitle: extractJDTitle(), topmateLink: `https://topmate.io/${state.cfg.topmate}` };
+  toast('🤖 Generating reply…');
+  try {
+    const res = await fetch('https://api.anthropic.com/v1/messages', {
+      method: 'POST',
+      headers: { 'x-api-key': state.cfg.claudeKey, 'anthropic-version': '2023-06-01', 'Content-Type': 'application/json', 'anthropic-dangerous-direct-browser-access': 'true' },
+      body: JSON.stringify({
+        model: 'claude-haiku-4-5-20251001',
+        max_tokens: 200,
+        messages: [{ role: 'user', content:
+          `You are ${cfg.recruiterName || 'a recruiter'} from NHRMS. Reply to this WhatsApp message from a candidate in 2-3 short sentences. Be warm, professional, and helpful.\n\nRole: ${cfg.jdTitle}\nCandidate message: "${incomingText}"\n\nWrite only the reply message, nothing else.` }]
+      })
+    });
+    const d = await res.json();
+    const reply = d.content?.[0]?.text?.trim();
+    if (!reply) { toast('AI returned empty reply', 'error'); return; }
+    // Fill reply box for the matching message
+    const inputs = document.querySelectorAll('[id^="reply-"]');
+    inputs.forEach(inp => { if (inp.closest('[data-from]')?.dataset.from === chatId || inputs.length === 1) inp.value = reply; });
+    // find any reply input near the AI button
+    const allInputs = document.querySelectorAll(`input[type="text"]`);
+    allInputs.forEach(i => { if (i.id.startsWith('reply-')) i.value = reply; });
+    toast('🤖 AI reply ready — review & send!', 'success');
+  } catch(e) { toast('AI error: ' + e.message, 'error'); }
 }
 
 function toggleWA(id) {
@@ -1553,7 +1765,12 @@ function selectAllWA(val) {
   renderWhatsApp();
 }
 
-function setTemplate(t) { activeTemplate = t; renderWhatsApp(); }
+function setTemplate(t) {
+  activeTemplate = t;
+  job().waCustomMsg = null; // reset custom msg when switching template
+  saveJobs();
+  renderWhatsApp();
+}
 
 function extractJDTitle() {
   if (!job().jd) return 'Open Position';
@@ -1565,6 +1782,9 @@ async function sendWhatsAppMessages() {
   if (!job().waSelected.size) { toast('Select at least one candidate', 'error'); return; }
   const cfg = { ...state.cfg, jdTitle: extractJDTitle(), topmateLink: `https://topmate.io/${state.cfg.topmate || 'your-link'}` };
   const candidates = job().candidates.filter(c => job().waSelected.has(c.id));
+  // get message from editor if present, else from template function
+  const editorEl = document.getElementById('wa-msg-editor');
+  const msgTemplate = editorEl ? editorEl.value : null;
 
   // Green API auto-send if credentials configured
   if (state.cfg.greenInstance && state.cfg.greenToken) {
@@ -1572,44 +1792,53 @@ async function sendWhatsAppMessages() {
     btn.innerHTML = '<span class="loading-spinner"></span> Sending...';
     btn.disabled = true;
     let sent = 0, failed = 0;
+    const host = getGreenApiHost();
     for (const c of candidates) {
-      if (!c.phone) { failed++; continue; }
+      if (!c.phone) { failed++; toast(`⚠️ ${c.name} has no phone number`, 'error'); continue; }
       const phone = c.phone.replace(/\D/g, '');
+      if (phone.length < 7) { failed++; toast(`⚠️ Invalid phone for ${c.name}: ${c.phone}`, 'error'); continue; }
       const chatId = `${phone}@c.us`;
-      const message = WA_TEMPLATES[activeTemplate](c, cfg);
+      const message = msgTemplate ? applyVars(msgTemplate, c, cfg) : WA_TEMPLATES[activeTemplate](c, cfg);
       try {
-        // Use instance-specific API host (first 4 digits of instance ID = server prefix)
-        const apiHost = state.cfg.greenApiUrl ||
-          `https://${String(state.cfg.greenInstance).slice(0,4)}.api.greenapi.com`;
         const res = await fetch(
-          `${apiHost}/waInstance${state.cfg.greenInstance}/sendMessage/${state.cfg.greenToken}`,
+          `${host}/waInstance${state.cfg.greenInstance}/sendMessage/${state.cfg.greenToken}`,
           { method: 'POST', headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({ chatId, message }) }
         );
         const data = await res.json();
-        if (data.idMessage) { sent++; c.status = 'messaged'; saveJobs(); }
-        else { failed++; console.warn('Green API failed for', c.name, data); }
-      } catch (err) { failed++; console.error('Green API error', c.name, err); }
+        if (data.idMessage) {
+          sent++; c.status = 'messaged'; saveJobs();
+        } else {
+          failed++;
+          const errDetail = data.message || data.error || JSON.stringify(data);
+          console.warn('Green API failed for', c.name, data);
+          toast(`❌ ${c.name}: ${errDetail}`, 'error');
+        }
+      } catch (err) {
+        failed++;
+        toast(`❌ Network error for ${c.name}: ${err.message}`, 'error');
+        console.error('Green API error', c.name, err);
+      }
     }
     updateBadges();
     btn.innerHTML = `📱 Send to ${job().waSelected.size} Candidate${job().waSelected.size !== 1 ? 's' : ''}`;
     btn.disabled = false;
-    toast(`✅ ${sent} sent${failed ? `, ${failed} failed` : ''}`, sent > 0 ? 'success' : 'error');
+    if (sent > 0 || failed > 0) toast(`${sent > 0 ? '✅ '+sent+' sent' : ''}${failed ? (sent?' · ':'')+'❌ '+failed+' failed' : ''}`, sent > 0 ? 'success' : 'error');
     renderWhatsApp();
     return;
   }
 
   // No bot configured → wa.me links (zero setup, works instantly)
-  showWaLinksModal(candidates, cfg);
+  showWaLinksModal(candidates, cfg, msgTemplate);
 }
 
-function showWaLinksModal(candidates, cfg) {
+function showWaLinksModal(candidates, cfg, msgTemplate) {
   const existing = document.getElementById('wa-links-modal');
   if (existing) existing.remove();
 
   const rows = candidates.map(c => {
     const phone = c.phone ? c.phone.replace(/\D/g, '') : '';
-    const message = WA_TEMPLATES[activeTemplate](c, cfg);
+    const message = msgTemplate ? applyVars(msgTemplate, c, cfg) : WA_TEMPLATES[activeTemplate](c, cfg);
     const url = `https://wa.me/${phone}?text=${encodeURIComponent(message)}`;
     return `<div style="display:flex;align-items:center;gap:12px;padding:12px;border:1px solid var(--border);border-radius:8px;margin-bottom:8px">
       <div style="flex:1;min-width:0">
