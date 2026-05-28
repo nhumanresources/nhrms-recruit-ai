@@ -833,12 +833,14 @@ function showLoginError(msg) {
 //  STATE
 // ─────────────────────────────────────────────
 function makeJob(title = 'New Position') {
-  return { id: Date.now(), title, jd: '', candidates: [], waSelected: new Set(), chatHistory: [], waCustomMsg: null, inbox: [] };
+  return { id: Date.now(), title, jd: '', candidates: [], waSelected: new Set(), chatHistory: [], waCustomMsg: null, inbox: [], conversations: {} };
 }
 
 const state = {
   jobs: [],
   activeJobId: null,
+  botMode: false,
+  botPrompt: '',
   cfg: {
     claudeKey: '',
     waPhoneId: '',
@@ -870,7 +872,7 @@ function loadJobs() {
   try {
     const raw = JSON.parse(localStorage.getItem('nhrms_jobs') || '[]');
     if (raw.length) {
-      state.jobs = raw.map(j => ({ inbox: [], waCustomMsg: null, ...j, waSelected: new Set(j.waSelected || []) }));
+      state.jobs = raw.map(j => ({ inbox: [], waCustomMsg: null, conversations: {}, ...j, waSelected: new Set(j.waSelected || []) }));
       state.activeJobId = state.jobs[0].id;
       return;
     }
@@ -884,6 +886,11 @@ function loadJobs() {
 try {
   const saved = JSON.parse(localStorage.getItem('nhrms_cfg') || '{}');
   Object.assign(state.cfg, saved);
+} catch(e) {}
+try {
+  const bs = JSON.parse(localStorage.getItem('nhrms_bot') || '{}');
+  state.botMode = bs.botMode || false;
+  state.botPrompt = bs.botPrompt || '';
 } catch(e) {}
 loadJobs();
 
@@ -1602,6 +1609,39 @@ function renderWhatsApp() {
     </div>
 
     <div>
+      <!-- BOT MODE PANEL -->
+      <div class="wa-panel" style="margin-bottom:16px; border:2px solid ${state.botMode ? '#25D366' : 'var(--border)'}">
+        <div style="display:flex; align-items:center; justify-content:space-between; margin-bottom:${state.botMode ? '14px' : '0'}">
+          <div>
+            <h3 style="margin:0; font-size:14px">🤖 Auto-Reply Bot</h3>
+            <p style="font-size:12px; color:var(--text-muted); margin:2px 0 0">Automatically replies to any HR-Tech enquiry on WhatsApp</p>
+          </div>
+          <label style="display:flex; align-items:center; gap:8px; cursor:pointer">
+            <span style="font-size:12px; color:${state.botMode ? '#25D366' : 'var(--text-muted)'}; font-weight:600">${state.botMode ? 'ON' : 'OFF'}</span>
+            <div onclick="toggleBotMode(${!state.botMode})"
+              style="width:44px; height:24px; border-radius:12px; background:${state.botMode ? '#25D366' : '#cbd5e1'}; position:relative; cursor:pointer; transition:background .2s">
+              <div style="width:20px; height:20px; border-radius:50%; background:#fff; position:absolute; top:2px; left:${state.botMode ? '22px' : '2px'}; transition:left .2s; box-shadow:0 1px 3px rgba(0,0,0,.2)"></div>
+            </div>
+          </label>
+        </div>
+        ${state.botMode ? `
+        <div style="background:#f0fdf4; border-radius:8px; padding:10px 12px; margin-bottom:12px; font-size:12px; color:#166534">
+          ✅ Bot is <strong>active</strong> — polling every 8s · replies automatically to HR enquiries using Claude + your JD
+          ${_botPolling ? '' : '<br><button onclick="startInboxPolling()" style="margin-top:6px;background:#25D366;color:#fff;border:none;border-radius:6px;padding:4px 10px;cursor:pointer;font-size:11px">▶ Start polling</button>'}
+        </div>
+        <div style="margin-bottom:10px">
+          <label style="font-size:11px; font-weight:600; color:var(--text-muted); display:block; margin-bottom:4px">Bot Persona / Instructions (optional — leave blank for smart defaults)</label>
+          <textarea id="bot-prompt-editor" rows="5"
+            style="width:100%; padding:10px; border:1px solid var(--border); border-radius:8px; font-size:12px; font-family:inherit; resize:vertical; outline:none; box-sizing:border-box"
+            placeholder="e.g. You are a helpful HR recruiter for NHRMS. Only respond to messages about jobs and hiring. Be warm and concise..."
+            oninput="state.botPrompt=this.value; saveBotSettings()">${escHtml(state.botPrompt)}</textarea>
+          <div style="display:flex; gap:8px; margin-top:6px">
+            <button class="btn btn-outline btn-sm" onclick="state.botPrompt=''; saveBotSettings(); document.getElementById('bot-prompt-editor').value=''" style="font-size:11px">↺ Use smart defaults</button>
+            <button class="btn btn-sm" style="background:#25D366;color:#fff;border:none;cursor:pointer;font-size:11px;border-radius:6px;padding:4px 10px" onclick="previewBotPrompt()">👁 Preview prompt</button>
+          </div>
+        </div>` : ''}
+      </div>
+
       <div class="wa-panel">
         <h3>✏️ Message (Editable)</h3>
         <div class="template-tabs">
@@ -1637,75 +1677,215 @@ function resetTemplate() {
   renderWhatsApp();
 }
 
+// ── Bot helpers ──
+function saveBotSettings() {
+  localStorage.setItem('nhrms_bot', JSON.stringify({ botMode: state.botMode, botPrompt: state.botPrompt }));
+}
+
+function getBotSystemPrompt() {
+  if (state.botPrompt) return state.botPrompt;
+  const cfg = state.cfg;
+  const j = job();
+  return `You are ${cfg.recruiterName || 'a Senior HR Professional'}, a Principal Executive Search Consultant at NHRMS. Your communication style is measured, authoritative, and strictly professional — the tone of a Head of HR, not a customer service agent. No exclamation marks. No filler phrases like "Great!" or "Absolutely!" or "Happy to help". Be direct, precise, and respectful.
+
+${j.jd ? `MANDATE:\nPosition: ${j.title}\n\n${j.jd.slice(0, 900)}` : `You are managing executive search mandates at NHRMS, currently hiring for: ${j.title || 'senior positions'}`}
+
+Interview scheduling: https://topmate.io/${cfg.topmate || 'recruiter'}
+
+ENGAGEMENT PROTOCOL:
+- Respond only to messages related to careers, hiring, job opportunities, HR, recruitment, or professional enquiries
+- Assess candidate suitability based on the mandate above before engaging further
+- Ask targeted qualification questions (experience, current role, notice period, location) — one at a time
+- If the candidate meets the criteria, direct them to schedule a call via the link above
+- If the message is unrelated to HR or professional matters, respond: "This channel is dedicated to professional recruitment enquiries. Please reach out if you are exploring relevant opportunities."
+- Never disclose salary ranges — compensation will be discussed during the evaluation process
+- Never fabricate details not present in the mandate
+- Keep replies to 3 sentences maximum`;
+}
+
+function isHRTechRelated(text) {
+  const keywords = /job|hire|hiring|role|position|apply|application|resume|cv|interview|salary|experience|skills|candidate|work|career|opportunity|recruitment|shortlist|jd|opening|vacancy|HR|tech|engineer|developer|manager/i;
+  return keywords.test(text);
+}
+
 // ── Inbox polling ──
 let _inboxPollingTimer = null;
+let _botPolling = false;
 
 async function pollInbox(once = false) {
   if (!state.cfg.greenInstance || !state.cfg.greenToken) return;
   const host = getGreenApiHost();
   try {
     const res = await fetch(`${host}/waInstance${state.cfg.greenInstance}/receiveNotification/${state.cfg.greenToken}`);
-    if (!res.ok) { console.warn('pollInbox HTTP', res.status); return; }
+    if (!res.ok) { console.warn('pollInbox HTTP', res.status); if (!once) _inboxPollingTimer = setTimeout(pollInbox, 15000); return; }
     const data = await res.json();
-    if (!data) { if (!once) _inboxPollingTimer = setTimeout(pollInbox, 12000); return; }
+    if (!data) {
+      if (!once) _inboxPollingTimer = setTimeout(pollInbox, state.botMode ? 8000 : 12000);
+      return;
+    }
 
     // process incoming text message
     if (data.body?.typeWebhook === 'incomingMessageReceived') {
       const txt = data.body.messageData?.textMessageData?.textMessage;
       if (txt) {
+        const chatId = data.body.senderData?.chatId || '';
+        const senderName = data.body.senderData?.senderName || data.body.senderData?.chatId || '';
         const msg = {
           id: data.body.idMessage || Date.now(),
-          from: data.body.senderData?.chatId || '',
-          senderName: data.body.senderData?.senderName || data.body.senderData?.chatId || '',
+          from: chatId,
+          senderName,
           text: txt,
           time: (data.body.timestamp || Date.now()/1000) * 1000
         };
         job().inbox = job().inbox || [];
-        // avoid duplicates
         if (!job().inbox.find(m => m.id === msg.id)) {
           job().inbox.push(msg);
+          // add to conversation history
+          job().conversations = job().conversations || {};
+          job().conversations[chatId] = job().conversations[chatId] || [];
+          job().conversations[chatId].push({ role: 'user', content: txt, time: msg.time });
           saveJobs();
-          toast(`📩 Reply from ${msg.senderName}: ${msg.text.slice(0,50)}`, 'success');
-          renderInboxSection();
+          if (state.botMode) {
+            autoBotReply(chatId, senderName, txt);
+          } else {
+            toast(`📩 ${senderName}: ${txt.slice(0,50)}`, 'success');
+            renderInboxSection();
+          }
         }
       }
     }
     // acknowledge
     await fetch(`${host}/waInstance${state.cfg.greenInstance}/deleteNotification/${state.cfg.greenToken}/${data.receiptId}`, { method: 'DELETE' });
-    // poll again immediately (might be more)
-    pollInbox(once);
+    pollInbox(once); // drain queue
   } catch(e) {
     console.warn('pollInbox error', e);
     if (!once) _inboxPollingTimer = setTimeout(pollInbox, 15000);
   }
 }
 
+async function autoBotReply(chatId, senderName, incomingText) {
+  if (!state.cfg.claudeKey) {
+    toast('⚠️ Bot needs Claude API key — add in Settings', 'error');
+    return;
+  }
+  const systemPrompt = getBotSystemPrompt();
+  const history = (job().conversations?.[chatId] || []).slice(-10); // last 10 turns for context
+
+  const messages = history.map(h => ({ role: h.role === 'assistant' ? 'assistant' : 'user', content: h.content }));
+  // ensure last message is from user
+  if (!messages.length || messages[messages.length-1].role !== 'user') {
+    messages.push({ role: 'user', content: incomingText });
+  }
+
+  try {
+    const res = await fetch('https://api.anthropic.com/v1/messages', {
+      method: 'POST',
+      headers: {
+        'x-api-key': state.cfg.claudeKey,
+        'anthropic-version': '2023-06-01',
+        'Content-Type': 'application/json',
+        'anthropic-dangerous-direct-browser-access': 'true'
+      },
+      body: JSON.stringify({
+        model: 'claude-haiku-4-5-20251001',
+        max_tokens: 300,
+        system: systemPrompt,
+        messages
+      })
+    });
+    const d = await res.json();
+    const reply = d.content?.[0]?.text?.trim();
+    if (!reply) return;
+
+    // save to conversation history
+    job().conversations[chatId].push({ role: 'assistant', content: reply, time: Date.now() });
+    saveJobs();
+
+    // auto-send reply
+    await sendReply(chatId, reply);
+    toast(`🤖 Auto-replied to ${senderName}`, 'success');
+    renderInboxSection();
+  } catch(e) {
+    console.error('autoBotReply error', e);
+    toast(`⚠️ Bot reply failed: ${e.message}`, 'error');
+  }
+}
+
 function startInboxPolling() {
   clearTimeout(_inboxPollingTimer);
+  _botPolling = true;
   pollInbox();
-  toast('📡 Auto-polling for replies every 12s');
+  toast(state.botMode ? '🤖 Bot is live — auto-replying to HR enquiries' : '📡 Auto-polling for replies every 8s', 'success');
+}
+
+function stopInboxPolling() {
+  clearTimeout(_inboxPollingTimer);
+  _botPolling = false;
+  toast('⏹ Bot stopped');
+}
+
+function toggleBotMode(val) {
+  state.botMode = val;
+  saveBotSettings();
+  renderWhatsApp();
+  if (val && !_botPolling) startInboxPolling();
+  toast(val ? '🤖 Bot mode ON — auto-replying to all HR enquiries' : '🔕 Bot mode OFF — manual replies only');
 }
 
 function renderInboxSection() {
   const body = document.getElementById('inbox-body');
   if (!body) return;
-  const inbox = (job().inbox || []).slice().reverse();
-  if (!inbox.length) { body.innerHTML = '<p style="font-size:13px;color:var(--text-muted);text-align:center;padding:16px 0">No replies yet — click Refresh to check</p>'; return; }
-  body.innerHTML = inbox.map(m => `
-    <div style="border:1px solid var(--border);border-radius:8px;padding:12px;margin-bottom:8px">
-      <div style="display:flex;justify-content:space-between;margin-bottom:4px">
-        <strong style="font-size:13px">${escHtml(m.senderName || m.from)}</strong>
-        <span style="font-size:11px;color:var(--text-muted)">${new Date(m.time).toLocaleTimeString()}</span>
+  // group by contact, show latest message per contact
+  const convos = job().conversations || {};
+  const seen = new Set();
+  const threads = (job().inbox || []).slice().reverse().filter(m => {
+    if (seen.has(m.from)) return false;
+    seen.add(m.from); return true;
+  });
+  if (!threads.length) { body.innerHTML = '<p style="font-size:13px;color:var(--text-muted);text-align:center;padding:16px 0">No replies yet — click Refresh to check</p>'; return; }
+  body.innerHTML = threads.map(m => {
+    const thread = (convos[m.from] || []).slice(-6); // last 6 turns
+    const threadHtml = thread.map(t => `
+      <div style="display:flex;justify-content:${t.role==='assistant'?'flex-end':'flex-start'};margin-bottom:6px">
+        <div style="max-width:85%;padding:8px 12px;border-radius:${t.role==='assistant'?'12px 12px 2px 12px':'12px 12px 12px 2px'};background:${t.role==='assistant'?'#25D366':'#f1f5f9'};color:${t.role==='assistant'?'#fff':'var(--text)'};font-size:12px;line-height:1.5;white-space:pre-wrap">
+          ${escHtml(t.content)}
+          <div style="font-size:10px;opacity:.65;margin-top:3px;text-align:right">${t.role==='assistant'?'🤖 Bot':'👤'} · ${new Date(t.time).toLocaleTimeString([], {hour:'2-digit',minute:'2-digit'})}</div>
+        </div>
+      </div>`).join('');
+    return `
+    <div style="border:1px solid var(--border);border-radius:10px;overflow:hidden;margin-bottom:12px">
+      <div style="background:#f8fafc;padding:10px 14px;display:flex;justify-content:space-between;align-items:center;border-bottom:1px solid var(--border)">
+        <div>
+          <strong style="font-size:13px">${escHtml(m.senderName || m.from)}</strong>
+          <span style="font-size:11px;color:var(--text-muted);margin-left:8px">${m.from.replace('@c.us','').replace('@g.us',' (group)')}</span>
+        </div>
+        <span style="font-size:11px;color:var(--text-muted)">${new Date(m.time).toLocaleDateString()} ${new Date(m.time).toLocaleTimeString([], {hour:'2-digit',minute:'2-digit'})}</span>
       </div>
-      <div style="font-size:13px;color:var(--text);white-space:pre-wrap;margin-bottom:10px">${escHtml(m.text)}</div>
-      <div style="display:flex;gap:8px">
+      ${thread.length ? `<div style="padding:12px 14px;max-height:220px;overflow-y:auto;background:#fff">${threadHtml}</div>` : `<div style="padding:12px 14px;font-size:13px;color:var(--text)">${escHtml(m.text)}</div>`}
+      ${!state.botMode ? `
+      <div style="padding:10px 14px;border-top:1px solid var(--border);display:flex;gap:8px;background:#fafafa">
         <input type="text" id="reply-${m.id}" placeholder="Type reply…"
           style="flex:1;padding:6px 10px;border:1px solid var(--border);border-radius:6px;font-size:12px;outline:none"
           onkeydown="if(event.key==='Enter')sendReply('${m.from}',document.getElementById('reply-${m.id}').value)" />
         <button class="btn btn-outline btn-sm" onclick="sendReply('${m.from}',document.getElementById('reply-${m.id}').value)">Send</button>
-        ${state.cfg.claudeKey ? `<button class="btn btn-sm" style="background:#6c47d4;color:#fff;border:none;border-radius:6px;padding:6px 12px;cursor:pointer;font-size:12px" onclick="aiReply('${m.from}','${m.text.replace(/'/g,"\\'")}')">🤖 AI</button>` : ''}
-      </div>
-    </div>`).join('');
+        ${state.cfg.claudeKey ? `<button class="btn btn-sm" style="background:#6c47d4;color:#fff;border:none;border-radius:6px;padding:6px 12px;cursor:pointer;font-size:12px" onclick="aiReply('${m.from}','${m.text.replace(/'/g,"\\'")}')">🤖 Draft</button>` : ''}
+      </div>` : `<div style="padding:8px 14px;background:#f0fdf4;font-size:11px;color:#166534;border-top:1px solid #bbf7d0">🤖 Bot mode active — replies sent automatically</div>`}
+    </div>`;
+  }).join('');
+}
+
+function previewBotPrompt() {
+  const p = getBotSystemPrompt();
+  const modal = document.createElement('div');
+  modal.style.cssText = 'position:fixed;inset:0;z-index:10000;background:rgba(0,0,0,.55);display:flex;align-items:center;justify-content:center;padding:20px';
+  modal.innerHTML = `<div style="background:#fff;border-radius:14px;padding:24px;max-width:600px;width:100%;max-height:80vh;overflow-y:auto">
+    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:16px">
+      <h3 style="font-size:15px;font-weight:700">🤖 Active Bot System Prompt</h3>
+      <button onclick="this.closest('div[style*=fixed]').remove()" style="background:none;border:none;font-size:20px;cursor:pointer;color:#64748b">✕</button>
+    </div>
+    <pre style="font-size:12px;line-height:1.6;white-space:pre-wrap;color:#1e293b;background:#f8fafc;padding:14px;border-radius:8px">${escHtml(p)}</pre>
+  </div>`;
+  document.body.appendChild(modal);
 }
 
 async function sendReply(chatId, text) {
