@@ -523,6 +523,16 @@
       <div class="logo-sub">AI Screening Platform</div>
     </div>
   </div>
+
+  <!-- JOB SWITCHER -->
+  <div id="job-switcher" style="padding:10px 12px; border-bottom:1px solid rgba(255,255,255,.08); margin-bottom:4px">
+    <div style="font-size:10px; font-weight:600; color:rgba(255,255,255,.4); text-transform:uppercase; letter-spacing:.08em; margin-bottom:6px">Active Position</div>
+    <div style="display:flex; gap:6px; align-items:center">
+      <select id="job-select" onchange="switchJob(+this.value)" style="flex:1; background:#2a2d3e; border:1px solid rgba(255,255,255,.12); border-radius:6px; color:#fff; font-size:12px; padding:5px 8px; cursor:pointer; appearance:none; -webkit-appearance:none; outline:none; overflow:hidden; white-space:nowrap; text-overflow:ellipsis"></select>
+      <button onclick="createNewJob()" title="New Position" style="background:#4f6ef7; border:none; border-radius:6px; color:#fff; font-size:16px; width:28px; height:28px; cursor:pointer; display:flex; align-items:center; justify-content:center; flex-shrink:0">+</button>
+    </div>
+  </div>
+
   <div class="nav">
     <div class="nav-item active" data-view="setup">
       <span class="nav-icon">⚙️</span> Setup
@@ -763,10 +773,11 @@ function onLoginSuccess() {
   document.getElementById('dd-name').textContent = u.name;
   document.getElementById('dd-email').textContent = u.email;
   // Pre-fill recruiter name in config if not already set
-  if (!S.cfg.name || S.cfg.name === 'Recruiter') {
-    S.cfg.name = u.name.split(' ')[0];
-    localStorage.setItem('nhrms_cfg', JSON.stringify(S.cfg));
+  if (!state.cfg.recruiterName || state.cfg.recruiterName === 'Recruiter') {
+    state.cfg.recruiterName = u.name.split(' ')[0];
+    localStorage.setItem('nhrms_cfg', JSON.stringify(state.cfg));
   }
+  renderJobSelect();
 }
 
 function signOut() {
@@ -820,14 +831,13 @@ function showLoginError(msg) {
 // ─────────────────────────────────────────────
 //  STATE
 // ─────────────────────────────────────────────
+function makeJob(title = 'New Position') {
+  return { id: Date.now(), title, jd: '', candidates: [], waSelected: new Set(), chatHistory: [] };
+}
+
 const state = {
-  candidates: [],
-  jd: '',
-  shortlisted: new Set(),
-  rejected: new Set(),
-  messaged: new Set(),
-  chatHistory: [],
-  waSelected: new Set(),
+  jobs: [],
+  activeJobId: null,
   cfg: {
     claudeKey: '',
     waPhoneId: '',
@@ -839,11 +849,74 @@ const state = {
   }
 };
 
+// Active job accessor
+function job() {
+  return state.jobs.find(j => j.id === state.activeJobId) || state.jobs[0];
+}
+
+// Persist jobs to localStorage (waSelected is a Set — convert to array)
+function saveJobs() {
+  const serialized = state.jobs.map(j => ({
+    ...j,
+    waSelected: [...j.waSelected]
+  }));
+  localStorage.setItem('nhrms_jobs', JSON.stringify(serialized));
+}
+
+// Load jobs from localStorage
+function loadJobs() {
+  try {
+    const raw = JSON.parse(localStorage.getItem('nhrms_jobs') || '[]');
+    if (raw.length) {
+      state.jobs = raw.map(j => ({ ...j, waSelected: new Set(j.waSelected || []) }));
+      state.activeJobId = state.jobs[0].id;
+      return;
+    }
+  } catch(e) {}
+  const first = makeJob('New Position');
+  state.jobs = [first];
+  state.activeJobId = first.id;
+}
+
 // load saved config
 try {
   const saved = JSON.parse(localStorage.getItem('nhrms_cfg') || '{}');
   Object.assign(state.cfg, saved);
 } catch(e) {}
+loadJobs();
+
+// ─────────────────────────────────────────────
+//  MULTI-JOB HELPERS
+// ─────────────────────────────────────────────
+function renderJobSelect() {
+  const sel = document.getElementById('job-select');
+  if (!sel) return;
+  sel.innerHTML = state.jobs.map(j =>
+    `<option value="${j.id}" ${j.id === state.activeJobId ? 'selected' : ''}>${j.title}</option>`
+  ).join('');
+}
+
+function switchJob(id) {
+  state.activeJobId = id;
+  renderJobSelect();
+  updateBadges();
+  // re-render the current view with new job data
+  const active = document.querySelector('.nav-item.active');
+  if (active) navigate(active.dataset.view);
+}
+
+function createNewJob() {
+  const title = prompt('Position title:', 'New Position');
+  if (!title) return;
+  const j = makeJob(title.trim());
+  state.jobs.push(j);
+  state.activeJobId = j.id;
+  saveJobs();
+  renderJobSelect();
+  updateBadges();
+  navigate('setup');
+  toast(`✅ Created: ${j.title}`);
+}
 
 // ─────────────────────────────────────────────
 //  NAVIGATION
@@ -855,7 +928,7 @@ function navigate(view) {
   document.querySelectorAll('.nav-item').forEach(el => el.classList.toggle('active', el.dataset.view === view));
   document.getElementById('page-title').textContent = pageTitles[view] || view;
   const btn = document.getElementById('topbar-action-btn');
-  btn.style.display = (view === 'candidates' && state.candidates.length > 0) ? '' : 'none';
+  btn.style.display = (view === 'candidates' && job().candidates.length > 0) ? '' : 'none';
   views[view]?.();
 }
 
@@ -901,8 +974,14 @@ function renderSetup() {
         </div>
       </div>
       <div class="card-body">
+        <div class="config-row" style="margin-bottom:10px">
+          <label style="font-size:12px; font-weight:600; color:var(--text-muted)">Position Title</label>
+          <input type="text" id="job-title-input" value="${job().title}" placeholder="e.g. Senior Full-Stack Engineer"
+            style="font-weight:600; font-size:14px"
+            oninput="job().title=this.value; saveJobs(); renderJobSelect()" />
+        </div>
         <textarea class="jd-input" id="jd-input" placeholder="Paste your Job Description here...
-E.g.: We are hiring a Senior Full-Stack Engineer with 5+ years experience in React, Node.js, and PostgreSQL. Must have experience with cloud platforms (AWS/GCP). Strong communication skills required...">${state.jd}</textarea>
+E.g.: We are hiring a Senior Full-Stack Engineer with 5+ years experience in React, Node.js, and PostgreSQL. Must have experience with cloud platforms (AWS/GCP). Strong communication skills required...">${job().jd}</textarea>
         <button class="btn btn-primary" style="margin-top:10px; width:100%" onclick="saveJD()">✅ Save Job Description</button>
       </div>
     </div>
@@ -958,15 +1037,16 @@ E.g.: We are hiring a Senior Full-Stack Engineer with 5+ years experience in Rea
   drop.addEventListener('dragleave', () => drop.classList.remove('dragover'));
   drop.addEventListener('drop', e => { e.preventDefault(); drop.classList.remove('dragover'); loadCSV(e.dataTransfer.files[0]); });
 
-  if (state.candidates.length > 0) {
+  if (job().candidates.length > 0) {
     document.getElementById('csv-status').classList.add('show');
-    document.getElementById('csv-status-text').textContent = `${state.candidates.length} candidates loaded`;
+    document.getElementById('csv-status-text').textContent = `${job().candidates.length} candidates loaded`;
   }
 }
 
 function saveJD() {
-  state.jd = document.getElementById('jd-input').value.trim();
-  if (!state.jd) { toast('Please enter a Job Description', 'error'); return; }
+  job().jd = document.getElementById('jd-input').value.trim();
+  if (!job().jd) { toast('Please enter a Job Description', 'error'); return; }
+  saveJobs();
   toast('Job Description saved ✅');
 }
 
@@ -980,7 +1060,7 @@ function loadCSV(file) {
     const text = e.target.result;
     const rows = text.split('\n').map(r => r.split(',').map(c => c.replace(/^"|"$/g,'').trim()));
     const headers = rows[0].map(h => h.toLowerCase().replace(/\s+/g,'_'));
-    state.candidates = rows.slice(1).filter(r => r.some(c => c)).map((r, i) => {
+    job().candidates = rows.slice(1).filter(r => r.some(c => c)).map((r, i) => {
       const obj = { id: i, status: 'new', score: null, scoreReason: '' };
       headers.forEach((h, hi) => { obj[h] = r[hi] || ''; });
       // normalize common column names
@@ -993,13 +1073,14 @@ function loadCSV(file) {
       obj.location = obj.location || obj.city || '';
       return obj;
     });
+    saveJobs();
     updateBadges();
     const status = document.getElementById('csv-status');
     if (status) {
       status.classList.add('show');
-      document.getElementById('csv-status-text').textContent = `${state.candidates.length} candidates loaded from ${file.name}`;
+      document.getElementById('csv-status-text').textContent = `${job().candidates.length} candidates loaded from ${file.name}`;
     }
-    toast(`✅ ${state.candidates.length} candidates loaded`);
+    toast(`✅ ${job().candidates.length} candidates loaded`);
     document.getElementById('topbar-action-btn').style.display = '';
   };
   reader.readAsText(file);
@@ -1010,15 +1091,15 @@ function loadCSV(file) {
 // ─────────────────────────────────────────────
 function renderCandidates() {
   const content = document.getElementById('content');
-  if (!state.candidates.length) {
+  if (!job().candidates.length) {
     content.innerHTML = `<div class="empty-state"><div class="empty-icon">📭</div><p>No candidates yet. Upload a CSV in Setup.</p></div>`;
     return;
   }
 
   // stats
-  const total = state.candidates.length;
-  const shortlisted = state.candidates.filter(c => c.status === 'shortlisted').length;
-  const rejected = state.candidates.filter(c => c.status === 'rejected').length;
+  const total = job().candidates.length;
+  const shortlisted = job().candidates.filter(c => c.status === 'shortlisted').length;
+  const rejected = job().candidates.filter(c => c.status === 'rejected').length;
   const pending = total - shortlisted - rejected;
 
   content.innerHTML = `
@@ -1066,7 +1147,7 @@ function filterCandidates() {
   const f = document.getElementById('cand-filter')?.value || 'all';
   const tbody = document.getElementById('candidates-tbody');
   if (!tbody) return;
-  const filtered = state.candidates.filter(c => {
+  const filtered = job().candidates.filter(c => {
     const matchSearch = !q || c.name?.toLowerCase().includes(q) || c.role?.toLowerCase().includes(q) || c.skills?.toLowerCase().includes(q);
     const matchFilter = f === 'all' || c.status === f;
     return matchSearch && matchFilter;
@@ -1118,7 +1199,7 @@ function candidateRow(c) {
 }
 
 function setStatus(id, status) {
-  const c = state.candidates.find(x => x.id === id);
+  const c = job().candidates.find(x => x.id === id);
   if (c) { c.status = status; updateBadges(); filterCandidates(); }
 }
 
@@ -1127,13 +1208,13 @@ function setStatus(id, status) {
 // ─────────────────────────────────────────────
 async function runAIScreening() {
   if (!state.cfg.claudeKey) { document.getElementById('config-modal').classList.add('show'); toast('Please add your Claude API key first', 'error'); return; }
-  if (!state.jd) { toast('Please add a Job Description first', 'error'); navigate('setup'); return; }
-  if (!state.candidates.length) { toast('No candidates loaded', 'error'); return; }
+  if (!job().jd) { toast('Please add a Job Description first', 'error'); navigate('setup'); return; }
+  if (!job().candidates.length) { toast('No candidates loaded', 'error'); return; }
 
   toast('🧠 AI screening started...');
   navigate('candidates');
 
-  const unscreened = state.candidates.filter(c => c.score === null);
+  const unscreened = job().candidates.filter(c => c.score === null);
   if (!unscreened.length) { toast('All candidates already screened', 'success'); return; }
 
   // batch screen (up to 10 at once to save tokens)
@@ -1145,7 +1226,7 @@ async function runAIScreening() {
   const prompt = `You are an expert HR recruiter. Given the Job Description and candidate list below, score each candidate from 0-100 based on fit, and give a 1-sentence reason.
 
 JOB DESCRIPTION:
-${state.jd}
+${job().jd}
 
 CANDIDATES:
 ${candidateSummary}
@@ -1166,9 +1247,10 @@ Rules:
     if (!jsonMatch) throw new Error('Invalid AI response format');
     const scores = JSON.parse(jsonMatch[0]);
     scores.forEach(s => {
-      const c = state.candidates.find(x => x.id === s.id);
+      const c = job().candidates.find(x => x.id === s.id);
       if (c) { c.score = s.score; c.scoreReason = s.reason; if (s.status !== 'pending') c.status = s.status; }
     });
+    saveJobs();
     updateBadges();
     filterCandidates();
     const sl = scores.filter(s => s.status === 'shortlisted').length;
@@ -1184,7 +1266,7 @@ Rules:
 // ─────────────────────────────────────────────
 function renderChat() {
   const content = document.getElementById('content');
-  const shortlisted = state.candidates.filter(c => c.status === 'shortlisted');
+  const shortlisted = job().candidates.filter(c => c.status === 'shortlisted');
 
   content.innerHTML = `
   <div class="chat-layout">
@@ -1193,7 +1275,7 @@ function renderChat() {
         <div class="ai-avatar">🧠</div>
         <div>
           <h3>Claude AI Screener</h3>
-          <p>${state.candidates.length} candidates · ${shortlisted.length} shortlisted · ${state.jd ? 'JD loaded ✓' : 'No JD — add in Setup'}</p>
+          <p>${job().candidates.length} candidates · ${shortlisted.length} shortlisted · ${job().jd ? 'JD loaded ✓' : 'No JD — add in Setup'}</p>
         </div>
       </div>
       <div class="quick-actions" id="quick-actions">
@@ -1205,17 +1287,17 @@ function renderChat() {
         <div class="quick-chip" onclick="quickAsk('Generate interview questions for the top candidates')">💡 Interview Qs</div>
       </div>
       <div class="chat-messages" id="chat-msgs">
-        ${state.chatHistory.length === 0 ? `
+        ${job().chatHistory.length === 0 ? `
         <div class="msg ai">
           <div class="msg-avatar">🧠</div>
           <div>
             <div class="msg-bubble">
-              👋 Hi! I'm your AI recruiting assistant. I have access to <strong>${state.candidates.length} candidates</strong> and your JD.
+              👋 Hi! I'm your AI recruiting assistant. I have access to <strong>${job().candidates.length} candidates</strong> and your JD.
               <br><br>Ask me anything — I can shortlist candidates, compare profiles, generate interview questions, or analyze skill gaps. Try one of the quick actions above!
             </div>
             <span class="msg-time">Now</span>
           </div>
-        </div>` : state.chatHistory.map(renderMsg).join('')}
+        </div>` : job().chatHistory.map(renderMsg).join('')}
       </div>
       <div class="chat-input-wrap">
         <textarea class="chat-input" id="chat-input" rows="1" placeholder="Ask about candidates, shortlisting, interview prep..." onkeydown="chatKeyDown(event)"></textarea>
@@ -1286,7 +1368,7 @@ async function sendChat() {
   input.value = '';
   const time = new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
 
-  state.chatHistory.push({ role: 'user', content: text, time });
+  job().chatHistory.push({ role: 'user', content: text, time });
   const msgs = document.getElementById('chat-msgs');
   msgs.innerHTML += renderMsg({ role: 'user', content: text, time });
 
@@ -1300,16 +1382,16 @@ async function sendChat() {
   document.getElementById('send-btn').disabled = true;
 
   // build system prompt with candidate data
-  const candidateData = state.candidates.slice(0, 50).map(c =>
+  const candidateData = job().candidates.slice(0, 50).map(c =>
     `[${c.name}] Role:${c.role} | Exp:${c.experience}yrs | Skills:${c.skills} | Score:${c.score ?? 'unscreened'} | Status:${c.status} | Phone:${c.phone} | Email:${c.email} | Location:${c.location}`
   ).join('\n');
 
   const systemPrompt = `You are an expert HR recruiter assistant for NHRMS. You have access to candidate data and a job description.
 
 JOB DESCRIPTION:
-${state.jd || 'Not provided'}
+${job().jd || 'Not provided'}
 
-CANDIDATES (${state.candidates.length} total):
+CANDIDATES (${job().candidates.length} total):
 ${candidateData}
 
 Rules:
@@ -1319,7 +1401,7 @@ Rules:
 - Format lists with bullet points
 - Scores are AI-generated match percentages (0-100)`;
 
-  const messages = state.chatHistory.slice(-8).map(m => ({
+  const messages = job().chatHistory.slice(-8).map(m => ({
     role: m.role === 'ai' ? 'assistant' : 'user',
     content: m.content
   }));
@@ -1328,7 +1410,7 @@ Rules:
     const reply = await callClaude(messages, systemPrompt, 1500);
     document.getElementById(typingId)?.remove();
     const aiTime = new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
-    state.chatHistory.push({ role: 'ai', content: reply, time: aiTime });
+    job().chatHistory.push({ role: 'ai', content: reply, time: aiTime });
     msgs.innerHTML += renderMsg({ role: 'ai', content: reply, time: aiTime });
   } catch (err) {
     document.getElementById(typingId)?.remove();
@@ -1391,7 +1473,7 @@ let activeTemplate = 'shortlist';
 
 function renderWhatsApp() {
   const content = document.getElementById('content');
-  const shortlisted = state.candidates.filter(c => c.status === 'shortlisted' || c.status === 'new');
+  const shortlisted = job().candidates.filter(c => c.status === 'shortlisted' || c.status === 'new');
   const cfg = { ...state.cfg, jdTitle: extractJDTitle(), topmateLink: `https://topmate.io/${state.cfg.topmate}` };
 
   if (!shortlisted.length) {
@@ -1415,8 +1497,8 @@ function renderWhatsApp() {
       <div class="wa-candidates" id="wa-candidates-list">
         ${shortlisted.map(c => `
         <div class="wa-card">
-          <div class="wa-check ${state.waSelected.has(c.id) ? 'checked' : ''}" id="wa-check-${c.id}" onclick="toggleWA(${c.id})">
-            ${state.waSelected.has(c.id) ? '✓' : ''}
+          <div class="wa-check ${job().waSelected.has(c.id) ? 'checked' : ''}" id="wa-check-${c.id}" onclick="toggleWA(${c.id})">
+            ${job().waSelected.has(c.id) ? '✓' : ''}
           </div>
           <div class="wa-info">
             <div class="wa-name">${escHtml(c.name)}</div>
@@ -1441,10 +1523,10 @@ function renderWhatsApp() {
           ✅ Name is auto-personalized for each candidate
         </div>
         <div id="wa-send-info" style="background:var(--primary-light); border-radius:8px; padding:10px 14px; font-size:12.5px; color:var(--primary); margin-bottom:14px">
-          <strong>${state.waSelected.size} selected</strong> — ${state.cfg.greenInstance && state.cfg.greenToken ? '🤖 will send automatically via bot' : 'opens WhatsApp with message pre-filled'}
+          <strong>${job().waSelected.size} selected</strong> — ${state.cfg.greenInstance && state.cfg.greenToken ? '🤖 will send automatically via bot' : 'opens WhatsApp with message pre-filled'}
         </div>
         <button class="btn btn-wa" style="width:100%; justify-content:center; padding:12px" onclick="sendWhatsAppMessages()" id="wa-send-btn">
-          📱 Send to ${state.waSelected.size} Candidate${state.waSelected.size !== 1 ? 's' : ''}
+          📱 Send to ${job().waSelected.size} Candidate${job().waSelected.size !== 1 ? 's' : ''}
         </button>
         <div style="margin-top:12px; font-size:12px; color:var(--text-muted); text-align:center">
           ${state.cfg.greenInstance && state.cfg.greenToken ? '✅ WhatsApp bot connected — messages send automatically' : '💡 Add Green API credentials in ⚙️ Settings to enable auto-send'}
@@ -1455,34 +1537,34 @@ function renderWhatsApp() {
 }
 
 function toggleWA(id) {
-  if (state.waSelected.has(id)) state.waSelected.delete(id);
-  else state.waSelected.add(id);
+  if (job().waSelected.has(id)) job().waSelected.delete(id);
+  else job().waSelected.add(id);
   updateBadges();
   const check = document.getElementById(`wa-check-${id}`);
-  if (check) { check.classList.toggle('checked', state.waSelected.has(id)); check.textContent = state.waSelected.has(id) ? '✓' : ''; }
-  document.getElementById('wa-send-info').innerHTML = `<strong>${state.waSelected.size} selected</strong> — ${state.cfg.greenInstance && state.cfg.greenToken ? '🤖 will send automatically via bot' : 'opens WhatsApp with message pre-filled'}`;
-  document.getElementById('wa-send-btn').textContent = `📤 Send to ${state.waSelected.size} Candidate${state.waSelected.size !== 1 ? 's' : ''}`;
+  if (check) { check.classList.toggle('checked', job().waSelected.has(id)); check.textContent = job().waSelected.has(id) ? '✓' : ''; }
+  document.getElementById('wa-send-info').innerHTML = `<strong>${job().waSelected.size} selected</strong> — ${state.cfg.greenInstance && state.cfg.greenToken ? '🤖 will send automatically via bot' : 'opens WhatsApp with message pre-filled'}`;
+  document.getElementById('wa-send-btn').textContent = `📤 Send to ${job().waSelected.size} Candidate${job().waSelected.size !== 1 ? 's' : ''}`;
 }
 
 function selectAllWA(val) {
-  const shortlisted = state.candidates.filter(c => c.status === 'shortlisted' || c.status === 'new');
-  if (val) shortlisted.forEach(c => state.waSelected.add(c.id));
-  else state.waSelected.clear();
+  const shortlisted = job().candidates.filter(c => c.status === 'shortlisted' || c.status === 'new');
+  if (val) shortlisted.forEach(c => job().waSelected.add(c.id));
+  else job().waSelected.clear();
   renderWhatsApp();
 }
 
 function setTemplate(t) { activeTemplate = t; renderWhatsApp(); }
 
 function extractJDTitle() {
-  if (!state.jd) return 'Open Position';
-  const match = state.jd.match(/(?:hiring|looking for|position|role|title)[:\s]+([^\n.]+)/i);
+  if (!job().jd) return 'Open Position';
+  const match = job().jd.match(/(?:hiring|looking for|position|role|title)[:\s]+([^\n.]+)/i);
   return match ? match[1].trim().slice(0, 40) : 'Open Position';
 }
 
 async function sendWhatsAppMessages() {
-  if (!state.waSelected.size) { toast('Select at least one candidate', 'error'); return; }
+  if (!job().waSelected.size) { toast('Select at least one candidate', 'error'); return; }
   const cfg = { ...state.cfg, jdTitle: extractJDTitle(), topmateLink: `https://topmate.io/${state.cfg.topmate || 'your-link'}` };
-  const candidates = state.candidates.filter(c => state.waSelected.has(c.id));
+  const candidates = job().candidates.filter(c => job().waSelected.has(c.id));
 
   // Green API auto-send if credentials configured
   if (state.cfg.greenInstance && state.cfg.greenToken) {
@@ -1502,12 +1584,12 @@ async function sendWhatsAppMessages() {
             body: JSON.stringify({ chatId, message }) }
         );
         const data = await res.json();
-        if (data.idMessage) { sent++; c.status = 'messaged'; }
+        if (data.idMessage) { sent++; c.status = 'messaged'; saveJobs(); }
         else { failed++; console.warn('Green API failed for', c.name, data); }
       } catch (err) { failed++; console.error('Green API error', c.name, err); }
     }
     updateBadges();
-    btn.innerHTML = `📱 Send to ${state.waSelected.size} Candidate${state.waSelected.size !== 1 ? 's' : ''}`;
+    btn.innerHTML = `📱 Send to ${job().waSelected.size} Candidate${job().waSelected.size !== 1 ? 's' : ''}`;
     btn.disabled = false;
     toast(`✅ ${sent} sent${failed ? `, ${failed} failed` : ''}`, sent > 0 ? 'success' : 'error');
     renderWhatsApp();
@@ -1559,8 +1641,8 @@ function showWaLinksModal(candidates, cfg) {
 }
 
 function markMessaged(id) {
-  const c = state.candidates.find(x => x.id === id);
-  if (c) { c.status = 'messaged'; updateBadges(); }
+  const c = job().candidates.find(x => x.id === id);
+  if (c) { c.status = 'messaged'; saveJobs(); updateBadges(); }
 }
 
 // ─────────────────────────────────────────────
@@ -1568,7 +1650,7 @@ function markMessaged(id) {
 // ─────────────────────────────────────────────
 function renderCalendar() {
   const content = document.getElementById('content');
-  const shortlisted = state.candidates.filter(c => c.status === 'shortlisted' || c.status === 'messaged');
+  const shortlisted = job().candidates.filter(c => c.status === 'shortlisted' || c.status === 'messaged');
   const topmateBase = `https://topmate.io/${state.cfg.topmate}`;
 
   content.innerHTML = `
@@ -1630,7 +1712,7 @@ function copyLink(link, name) {
   toast(`📋 Link for ${name} copied!`, 'success');
 }
 function copyAllLinks() {
-  const shortlisted = state.candidates.filter(c => c.status === 'shortlisted' || c.status === 'messaged');
+  const shortlisted = job().candidates.filter(c => c.status === 'shortlisted' || c.status === 'messaged');
   const links = shortlisted.map(c => `${c.name}: https://topmate.io/${state.cfg.topmate}`).join('\n');
   navigator.clipboard.writeText(links);
   toast(`📋 ${shortlisted.length} links copied!`, 'success');
@@ -1695,9 +1777,9 @@ function toast(msg, type = '') {
 }
 
 function updateBadges() {
-  document.getElementById('badge-candidates').textContent = state.candidates.length;
-  document.getElementById('badge-wa').textContent = state.candidates.filter(c => c.status === 'shortlisted').length;
-  document.getElementById('badge-cal').textContent = state.candidates.filter(c => c.status === 'shortlisted' || c.status === 'messaged').length;
+  document.getElementById('badge-candidates').textContent = job().candidates.length;
+  document.getElementById('badge-wa').textContent = job().candidates.filter(c => c.status === 'shortlisted').length;
+  document.getElementById('badge-cal').textContent = job().candidates.filter(c => c.status === 'shortlisted' || c.status === 'messaged').length;
 }
 
 // ─────────────────────────────────────────────
@@ -1710,6 +1792,7 @@ document.getElementById('cfg-name').value = state.cfg.recruiterName;
 document.getElementById('cfg-green-instance').value = state.cfg.greenInstance || '';
 document.getElementById('cfg-green-token').value = state.cfg.greenToken || '';
 
+renderJobSelect();
 navigate('setup');
 updateBadges();
 
