@@ -1809,10 +1809,25 @@ async function sendWhatsAppMessages() {
         if (data.idMessage) {
           sent++; c.status = 'messaged'; saveJobs();
         } else {
+          // Detect quota exceeded — fall back to wa.me for remaining candidates
+          const isQuotaError = data.invokeStatus?.status === 'QUOTE_ALLOWED' ||
+            data.invokeStatus?.status === 'CORRESPONDENTS_QUOTE_EXCEEDED' ||
+            JSON.stringify(data).includes('quota');
+          if (isQuotaError) {
+            failed++;
+            // collect remaining (this + not-yet-processed) for wa.me fallback
+            const remaining = candidates.slice(candidates.indexOf(c));
+            updateBadges();
+            btn.innerHTML = `📱 Send to ${job().waSelected.size} Candidate${job().waSelected.size !== 1 ? 's' : ''}`;
+            btn.disabled = false;
+            toast(`⚠️ Green API free quota exceeded — opening wa.me links for remaining ${remaining.length} candidate(s)`, 'error');
+            setTimeout(() => showWaLinksModal(remaining, cfg, msgTemplate), 800);
+            return;
+          }
           failed++;
-          const errDetail = data.message || data.error || JSON.stringify(data);
+          const errDetail = data.message || data.invokeStatus?.description || data.error || JSON.stringify(data);
           console.warn('Green API failed for', c.name, data);
-          toast(`❌ ${c.name}: ${errDetail}`, 'error');
+          toast(`❌ ${c.name}: ${errDetail.slice(0, 80)}`, 'error');
         }
       } catch (err) {
         failed++;
