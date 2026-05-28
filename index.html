@@ -593,14 +593,6 @@
         <input type="password" id="cfg-claude-key" placeholder="sk-ant-..." />
       </div>
       <div class="config-row">
-        <label>WhatsApp Business Phone Number ID</label>
-        <input type="text" id="cfg-wa-phone-id" placeholder="1234567890" />
-      </div>
-      <div class="config-row">
-        <label>WhatsApp Business API Token</label>
-        <input type="password" id="cfg-wa-token" placeholder="EAAxxxxx..." />
-      </div>
-      <div class="config-row">
         <label>Your Topmate Username</label>
         <input type="text" id="cfg-topmate" placeholder="yourname" />
       </div>
@@ -912,14 +904,6 @@ E.g.: We are hiring a Senior Full-Stack Engineer with 5+ years experience in Rea
         <div class="config-row">
           <label>Claude API Key</label>
           <input type="password" id="quick-claude-key" placeholder="sk-ant-..." value="${state.cfg.claudeKey}" oninput="state.cfg.claudeKey=this.value" />
-        </div>
-        <div class="config-row">
-          <label>WhatsApp Phone Number ID</label>
-          <input type="text" id="quick-wa-phone" placeholder="1234567890" value="${state.cfg.waPhoneId}" oninput="state.cfg.waPhoneId=this.value" />
-        </div>
-        <div class="config-row">
-          <label>WhatsApp API Token</label>
-          <input type="password" id="quick-wa-token" placeholder="EAAxxxxx" value="${state.cfg.waToken}" oninput="state.cfg.waToken=this.value" />
         </div>
         <div class="config-row">
           <label>Topmate Username</label>
@@ -1440,13 +1424,13 @@ function renderWhatsApp() {
           ✅ Name is auto-personalized for each candidate
         </div>
         <div id="wa-send-info" style="background:var(--primary-light); border-radius:8px; padding:10px 14px; font-size:12.5px; color:var(--primary); margin-bottom:14px">
-          <strong>${state.waSelected.size} selected</strong> — ${state.cfg.waPhoneId && state.cfg.waToken ? 'will send via Business API' : 'opens WhatsApp with message pre-filled'}
+          <strong>${state.waSelected.size} selected</strong> — opens WhatsApp with message pre-filled
         </div>
         <button class="btn btn-wa" style="width:100%; justify-content:center; padding:12px" onclick="sendWhatsAppMessages()" id="wa-send-btn">
           📱 Send to ${state.waSelected.size} Candidate${state.waSelected.size !== 1 ? 's' : ''}
         </button>
         <div style="margin-top:12px; font-size:12px; color:var(--text-muted); text-align:center">
-          ${state.cfg.waPhoneId && state.cfg.waToken ? '✅ Business API configured' : '💡 Works instantly — no setup needed. Add Business API in ⚙️ Settings for automated bulk sending.'}
+          💡 Click each button to open WhatsApp with the message ready — just hit Send
         </div>
       </div>
     </div>
@@ -1459,7 +1443,7 @@ function toggleWA(id) {
   updateBadges();
   const check = document.getElementById(`wa-check-${id}`);
   if (check) { check.classList.toggle('checked', state.waSelected.has(id)); check.textContent = state.waSelected.has(id) ? '✓' : ''; }
-  document.getElementById('wa-send-info').innerHTML = `<strong>${state.waSelected.size} selected</strong> — messages will be sent via WhatsApp Business API`;
+  document.getElementById('wa-send-info').innerHTML = `<strong>${state.waSelected.size} selected</strong> — opens WhatsApp with message pre-filled`;
   document.getElementById('wa-send-btn').textContent = `📤 Send to ${state.waSelected.size} Candidate${state.waSelected.size !== 1 ? 's' : ''}`;
 }
 
@@ -1478,55 +1462,10 @@ function extractJDTitle() {
   return match ? match[1].trim().slice(0, 40) : 'Open Position';
 }
 
-async function sendWhatsAppMessages() {
+function sendWhatsAppMessages() {
   if (!state.waSelected.size) { toast('Select at least one candidate', 'error'); return; }
-
   const cfg = { ...state.cfg, jdTitle: extractJDTitle(), topmateLink: `https://topmate.io/${state.cfg.topmate || 'your-link'}` };
   const candidates = state.candidates.filter(c => state.waSelected.has(c.id));
-
-  // If Business API credentials configured → use API
-  if (state.cfg.waPhoneId && state.cfg.waToken) {
-    const btn = document.getElementById('wa-send-btn');
-    btn.innerHTML = '<span class="loading-spinner"></span> Sending...';
-    btn.disabled = true;
-    let sent = 0, failed = 0, authError = null;
-    for (const c of candidates) {
-      if (!c.phone) { failed++; continue; }
-      const phone = c.phone.replace(/\D/g, '');
-      const message = WA_TEMPLATES[activeTemplate](c, cfg);
-      try {
-        const res = await fetch(`https://graph.facebook.com/v18.0/${state.cfg.waPhoneId}/messages`, {
-          method: 'POST',
-          headers: { 'Authorization': `Bearer ${state.cfg.waToken}`, 'Content-Type': 'application/json' },
-          body: JSON.stringify({ messaging_product: 'whatsapp', to: phone, type: 'text', text: { body: message } })
-        });
-        const data = await res.json();
-        if (data.messages?.[0]?.id) { sent++; c.status = 'messaged'; }
-        else {
-          // Detect auth/token errors — fall back to wa.me immediately
-          if (data.error?.code === 190 || data.error?.type === 'OAuthException' || data.error?.message?.includes('signature')) {
-            authError = data.error?.message || 'Invalid token';
-            break;
-          }
-          failed++;
-          console.warn('WA failed for', c.name, data);
-        }
-      } catch (err) { failed++; console.error('WA error', c.name, err); }
-    }
-    btn.innerHTML = `📱 Send to ${state.waSelected.size} Candidate${state.waSelected.size !== 1 ? 's' : ''}`;
-    btn.disabled = false;
-    if (authError) {
-      toast('⚠️ API token invalid — opening WhatsApp links instead', 'error');
-      showWaLinksModal(candidates, cfg);
-      return;
-    }
-    updateBadges();
-    toast(`✅ ${sent} sent${failed ? `, ${failed} failed` : ''}`, sent > 0 ? 'success' : 'error');
-    renderWhatsApp();
-    return;
-  }
-
-  // No API credentials → open wa.me links (works immediately, no setup needed)
   showWaLinksModal(candidates, cfg);
 }
 
@@ -1563,7 +1502,7 @@ function showWaLinksModal(candidates, cfg) {
       </div>
       <div style="padding:16px 24px;overflow-y:auto;flex:1">${rows}</div>
       <div style="padding:12px 24px;border-top:1px solid var(--border);background:#f8faff;font-size:12px;color:var(--text-muted);text-align:center">
-        💡 Add WhatsApp Business API credentials in ⚙️ Settings to send in bulk automatically
+        💡 WhatsApp opens with the message ready — just tap Send for each candidate
       </div>
     </div>`;
   document.body.appendChild(modal);
@@ -1683,8 +1622,6 @@ async function callClaude(messages, systemPrompt, maxTokens = 1024) {
 // ─────────────────────────────────────────────
 function saveConfig() {
   state.cfg.claudeKey = document.getElementById('cfg-claude-key')?.value || document.getElementById('quick-claude-key')?.value || state.cfg.claudeKey;
-  state.cfg.waPhoneId = document.getElementById('cfg-wa-phone-id')?.value || document.getElementById('quick-wa-phone')?.value || state.cfg.waPhoneId;
-  state.cfg.waToken = document.getElementById('cfg-wa-token')?.value || document.getElementById('quick-wa-token')?.value || state.cfg.waToken;
   state.cfg.topmate = document.getElementById('cfg-topmate')?.value || document.getElementById('quick-topmate')?.value || state.cfg.topmate;
   state.cfg.recruiterName = document.getElementById('cfg-name')?.value || document.getElementById('quick-name')?.value || state.cfg.recruiterName;
   localStorage.setItem('nhrms_cfg', JSON.stringify(state.cfg));
@@ -1717,8 +1654,6 @@ function updateBadges() {
 // ─────────────────────────────────────────────
 // prefill config modal from state
 document.getElementById('cfg-claude-key').value = state.cfg.claudeKey;
-document.getElementById('cfg-wa-phone-id').value = state.cfg.waPhoneId;
-document.getElementById('cfg-wa-token').value = state.cfg.waToken;
 document.getElementById('cfg-topmate').value = state.cfg.topmate;
 document.getElementById('cfg-name').value = state.cfg.recruiterName;
 
