@@ -1782,6 +1782,12 @@ async function pollInbox(once = false) {
       const txt = data.body.messageData?.textMessageData?.textMessage;
       if (txt) {
         const chatId = data.body.senderData?.chatId || '';
+        if (chatId.endsWith('@g.us')) {
+          // group message — skip silently, acknowledge and move on
+          await fetch(`${host}/waInstance${state.cfg.greenInstance}/deleteNotification/${state.cfg.greenToken}/${data.receiptId}`, { method: 'DELETE' });
+          if (!once) _inboxPollingTimer = setTimeout(pollInbox, state.botMode ? 8000 : 12000);
+          return;
+        }
         const senderName = data.body.senderData?.senderName || data.body.senderData?.chatId || '';
         const msg = {
           id: data.body.idMessage || Date.now(),
