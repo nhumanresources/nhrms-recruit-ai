@@ -1489,7 +1489,7 @@ async function sendWhatsAppMessages() {
     const btn = document.getElementById('wa-send-btn');
     btn.innerHTML = '<span class="loading-spinner"></span> Sending...';
     btn.disabled = true;
-    let sent = 0, failed = 0;
+    let sent = 0, failed = 0, authError = null;
     for (const c of candidates) {
       if (!c.phone) { failed++; continue; }
       const phone = c.phone.replace(/\D/g, '');
@@ -1502,12 +1502,25 @@ async function sendWhatsAppMessages() {
         });
         const data = await res.json();
         if (data.messages?.[0]?.id) { sent++; c.status = 'messaged'; }
-        else { failed++; console.warn('WA failed for', c.name, data); }
+        else {
+          // Detect auth/token errors — fall back to wa.me immediately
+          if (data.error?.code === 190 || data.error?.type === 'OAuthException' || data.error?.message?.includes('signature')) {
+            authError = data.error?.message || 'Invalid token';
+            break;
+          }
+          failed++;
+          console.warn('WA failed for', c.name, data);
+        }
       } catch (err) { failed++; console.error('WA error', c.name, err); }
     }
-    updateBadges();
     btn.innerHTML = `📱 Send to ${state.waSelected.size} Candidate${state.waSelected.size !== 1 ? 's' : ''}`;
     btn.disabled = false;
+    if (authError) {
+      toast('⚠️ API token invalid — opening WhatsApp links instead', 'error');
+      showWaLinksModal(candidates, cfg);
+      return;
+    }
+    updateBadges();
     toast(`✅ ${sent} sent${failed ? `, ${failed} failed` : ''}`, sent > 0 ? 'success' : 'error');
     renderWhatsApp();
     return;
