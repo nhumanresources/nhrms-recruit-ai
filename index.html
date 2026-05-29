@@ -589,7 +589,7 @@
       <span class="nav-badge" id="badge-candidates">0</span>
     </div>
     <div class="nav-item" data-view="chat">
-      <span class="nav-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M12 2a10 10 0 1 0 10 10"/><path d="M12 8v4l3 3"/><path d="M18 2l4 4-4 4"/><path d="M22 6h-8"/></svg></span> AI Screener
+      <span class="nav-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M12 2a10 10 0 1 0 10 10"/><path d="M12 8v4l3 3"/><path d="M18 2l4 4-4 4"/><path d="M22 6h-8"/></svg></span> Resume Stack Ranker
     </div>
     <div class="nav-item" data-view="whatsapp">
       <span class="nav-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg></span> WhatsApp
@@ -1054,7 +1054,7 @@ function createNewJob() {
 //  NAVIGATION
 // ─────────────────────────────────────────────
 const views = { setup: renderSetup, candidates: renderCandidates, chat: renderChat, whatsapp: renderWhatsApp, calendar: renderCalendar, campaigns: renderCampaigns, admin: renderAdmin };
-const pageTitles = { setup: 'Setup', candidates: 'Candidates', chat: 'AI Screener', whatsapp: 'WhatsApp Outreach', calendar: 'Schedule Interviews', campaigns: 'Campaigns', admin: 'Admin · User Management' };
+const pageTitles = { setup: 'Setup', candidates: 'Candidates', chat: 'Resume Stack Ranker', whatsapp: 'WhatsApp Outreach', calendar: 'Schedule Interviews', campaigns: 'Campaigns', admin: 'Admin · User Management' };
 
 function navigate(view) {
   document.querySelectorAll('.nav-item').forEach(el => el.classList.toggle('active', el.dataset.view === view));
