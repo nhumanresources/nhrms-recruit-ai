@@ -626,6 +626,10 @@
       <span class="nav-icon">📅</span> Calendar
       <span class="nav-badge" id="badge-cal">0</span>
     </div>
+    <div class="nav-item" data-view="campaigns">
+      <span class="nav-icon">🚀</span> Campaigns
+      <span class="nav-badge" id="badge-campaigns">0</span>
+    </div>
     <div class="nav-item" data-view="admin" id="admin-nav-item" style="display:none">
       <span class="nav-icon">👑</span> Admin
     </div>
@@ -927,6 +931,7 @@ const state = {
   botMode: false,
   botPrompt: '',
   jdPdf: { text: '', questions: [], fileName: '', loaded: false },
+  campaigns: [],
   cfg: {
     claudeKey: '',
     waPhoneId: '',
@@ -982,7 +987,14 @@ try {
   const jd = JSON.parse(localStorage.getItem('nhrms_jdpdf') || '{}');
   if (jd.text) state.jdPdf = { text: jd.text, questions: jd.questions || [], fileName: jd.fileName || '', loaded: true };
 } catch(e) {}
+try {
+  state.campaigns = JSON.parse(localStorage.getItem('nhrms_campaigns') || '[]');
+} catch(e) {}
 loadJobs();
+
+function saveCampaigns() {
+  localStorage.setItem('nhrms_campaigns', JSON.stringify(state.campaigns));
+}
 
 // ─────────────────────────────────────────────
 //  MULTI-JOB HELPERS
@@ -1020,8 +1032,8 @@ function createNewJob() {
 // ─────────────────────────────────────────────
 //  NAVIGATION
 // ─────────────────────────────────────────────
-const views = { setup: renderSetup, candidates: renderCandidates, chat: renderChat, whatsapp: renderWhatsApp, calendar: renderCalendar, admin: renderAdmin };
-const pageTitles = { setup: 'Setup', candidates: 'Candidates', chat: 'AI Screener', whatsapp: 'WhatsApp Outreach', calendar: 'Schedule Interviews', admin: 'Admin · User Management' };
+const views = { setup: renderSetup, candidates: renderCandidates, chat: renderChat, whatsapp: renderWhatsApp, calendar: renderCalendar, campaigns: renderCampaigns, admin: renderAdmin };
+const pageTitles = { setup: 'Setup', candidates: 'Candidates', chat: 'AI Screener', whatsapp: 'WhatsApp Outreach', calendar: 'Schedule Interviews', campaigns: 'Campaigns', admin: 'Admin · User Management' };
 
 function navigate(view) {
   document.querySelectorAll('.nav-item').forEach(el => el.classList.toggle('active', el.dataset.view === view));
@@ -2054,7 +2066,13 @@ async function pollInbox(once = false) {
           job().conversations[chatId] = job().conversations[chatId] || [];
           job().conversations[chatId].push({ role: 'user', content: txt, time: msg.time });
           saveJobs();
-          if (state.botMode) {
+          // Check if sender is part of an active campaign
+          const activeCampaign = state.campaigns.find(c =>
+            c.status === 'active' && c.members?.some(m => m.id === chatId || chatId.startsWith(m.id.replace('@c.us','')))
+          );
+          if (activeCampaign) {
+            campaignBotReply(activeCampaign, chatId, senderName, txt);
+          } else if (state.botMode) {
             autoBotReply(chatId, senderName, txt);
           } else {
             toast(`📩 ${senderName}: ${txt.slice(0,50)}`, 'success');
@@ -2118,6 +2136,297 @@ async function autoBotReply(chatId, senderName, incomingText) {
     console.error('autoBotReply error', e);
     toast(`⚠️ Bot reply failed: ${e.message}`, 'error');
   }
+}
+
+// ─────────────────────────────────────────────
+//  CAMPAIGN ENGINE
+// ─────────────────────────────────────────────
+
+async function campaignBotReply(campaign, chatId, senderName, incomingText) {
+  if (!state.cfg.claudeKey) return;
+  campaign.conversations = campaign.conversations || {};
+  campaign.conversations[chatId] = campaign.conversations[chatId] || [];
+  campaign.conversations[chatId].push({ role: 'user', content: incomingText, time: Date.now() });
+
+  const history = campaign.conversations[chatId].slice(-12);
+  const messages = history.map(h => ({ role: h.role, content: h.content }));
+  if (messages[messages.length - 1]?.role !== 'user') messages.push({ role: 'user', content: incomingText });
+
+  try {
+    const res = await fetch('https://api.anthropic.com/v1/messages', {
+      method: 'POST',
+      headers: { 'x-api-key': state.cfg.claudeKey, 'anthropic-version': '2023-06-01', 'Content-Type': 'application/json', 'anthropic-dangerous-direct-browser-access': 'true' },
+      body: JSON.stringify({ model: 'claude-opus-4-6', max_tokens: 500, system: campaign.botPrompt, messages })
+    });
+    const d = await res.json();
+    const reply = d.content?.[0]?.text?.trim();
+    if (!reply) return;
+    campaign.conversations[chatId].push({ role: 'assistant', content: reply, time: Date.now() });
+    // mark member as replied
+    const member = campaign.members?.find(m => m.id === chatId || chatId.startsWith(m.id.replace('@c.us','')));
+    if (member) member.replied = true;
+    saveCampaigns();
+    await sendReply(chatId, reply);
+    toast(`💬 Campaign reply sent to ${senderName}`);
+    if (document.querySelector('.nav-item.active')?.dataset.view === 'campaigns') renderCampaigns();
+  } catch(e) {
+    console.error('campaignBotReply error', e);
+  }
+}
+
+async function fetchGroupMembers(groupId) {
+  const host = getGreenApiHost();
+  const res = await fetch(`${host}/waInstance${state.cfg.greenInstance}/getGroupData/${state.cfg.greenToken}`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ groupId })
+  });
+  if (!res.ok) throw new Error(`HTTP ${res.status}`);
+  const d = await res.json();
+  // participants array: [{ id, isAdmin, ... }]
+  const myId = `${state.cfg.greenInstance}@c.us`;
+  return (d.participants || [])
+    .filter(p => p.id !== myId && !p.id.endsWith('@g.us'))
+    .map(p => ({ id: p.id, name: p.id.replace('@c.us',''), isAdmin: p.isAdmin, sent: false, replied: false }));
+}
+
+async function launchCampaign(campaignId) {
+  const campaign = state.campaigns.find(c => c.id === campaignId);
+  if (!campaign || !campaign.members?.length) { toast('No members to message', 'error'); return; }
+  if (!state.cfg.greenInstance || !state.cfg.greenToken) { toast('WhatsApp not configured', 'error'); return; }
+  if (!_botPolling) startInboxPolling(); // ensure polling is on to catch replies
+
+  campaign.status = 'active';
+  campaign.launchedAt = Date.now();
+  saveCampaigns();
+  renderCampaigns();
+
+  const delay = ms => new Promise(r => setTimeout(r, ms));
+  const unsent = campaign.members.filter(m => !m.sent);
+  toast(`🚀 Sending to ${unsent.length} members — 10s between each`);
+
+  for (let i = 0; i < unsent.length; i++) {
+    const member = unsent[i];
+    try {
+      await sendReply(member.id, campaign.openingMessage);
+      member.sent = true;
+      // seed conversation history with opening message
+      campaign.conversations = campaign.conversations || {};
+      campaign.conversations[member.id] = [{ role: 'assistant', content: campaign.openingMessage, time: Date.now() }];
+      saveCampaigns();
+      if (document.querySelector('.nav-item.active')?.dataset.view === 'campaigns') renderCampaigns();
+      toast(`✅ Sent to ${member.name} (${i+1}/${unsent.length})`);
+    } catch(e) {
+      toast(`⚠️ Failed: ${member.name}`, 'error');
+    }
+    if (i < unsent.length - 1) await delay(10000); // 10s gap — WhatsApp anti-spam
+  }
+  toast(`🎉 Campaign "${campaign.name}" launched to ${unsent.length} members`, 'success');
+}
+
+function deleteCampaign(campaignId) {
+  if (!confirm('Delete this campaign and all its data?')) return;
+  state.campaigns = state.campaigns.filter(c => c.id !== campaignId);
+  saveCampaigns();
+  renderCampaigns();
+}
+
+// ─────────────────────────────────────────────
+//  CAMPAIGNS VIEW
+// ─────────────────────────────────────────────
+function renderCampaigns() {
+  const content = document.getElementById('content');
+  const totalActive = state.campaigns.filter(c => c.status === 'active').length;
+  const badge = document.getElementById('badge-campaigns');
+  if (badge) badge.textContent = totalActive || state.campaigns.length;
+
+  content.innerHTML = `
+  <div style="max-width:860px; margin:0 auto">
+
+    <!-- NEW CAMPAIGN CARD -->
+    <div class="card" style="margin-bottom:20px">
+      <div class="card-header">
+        <div class="card-icon" style="background:#eff6ff">🚀</div>
+        <div><h3>New Campaign</h3><p>Message a WhatsApp group individually — each person gets a private DM</p></div>
+      </div>
+      <div class="card-body">
+        <div style="display:grid; grid-template-columns:1fr 1fr; gap:12px; margin-bottom:12px">
+          <div>
+            <label style="font-size:12px; font-weight:600; color:var(--text-muted); display:block; margin-bottom:4px">Campaign Name</label>
+            <input id="camp-name" type="text" class="form-input" placeholder="e.g. Learning Goals 2026" style="width:100%" />
+          </div>
+          <div>
+            <label style="font-size:12px; font-weight:600; color:var(--text-muted); display:block; margin-bottom:4px">WhatsApp Group ID</label>
+            <div style="display:flex; gap:8px">
+              <input id="camp-group-id" type="text" class="form-input" placeholder="120363XXXXXXXX@g.us" style="flex:1" />
+              <button class="btn btn-sm" onclick="loadCampaignMembers()" style="background:var(--primary);color:#fff;border:none;white-space:nowrap">Fetch Members</button>
+            </div>
+            <div style="font-size:11px; color:var(--text-muted); margin-top:3px">Find it in WhatsApp: open group > 3-dot menu > Group info — or paste a recent message chatId</div>
+          </div>
+        </div>
+
+        <div id="camp-members-preview" style="margin-bottom:12px"></div>
+
+        <div style="margin-bottom:12px">
+          <label style="font-size:12px; font-weight:600; color:var(--text-muted); display:block; margin-bottom:4px">Opening Message <span style="font-weight:400">(sent to each person as the first DM)</span></label>
+          <textarea id="camp-opening-msg" class="form-input" rows="3" style="width:100%; resize:vertical" placeholder="Hi [Name], this is ${state.cfg.recruiterName || 'the NHRMS team'}. We are checking in with everyone about learning goals for 2026..."></textarea>
+        </div>
+
+        <div style="margin-bottom:16px">
+          <label style="font-size:12px; font-weight:600; color:var(--text-muted); display:block; margin-bottom:4px">Bot Persona <span style="font-weight:400">(how the bot replies when they respond)</span></label>
+          <textarea id="camp-bot-prompt" class="form-input" rows="4" style="width:100%; resize:vertical">${getCampaignDefaultPrompt()}</textarea>
+        </div>
+
+        <div style="display:flex; gap:10px">
+          <button class="btn btn-primary" onclick="createCampaign()">Create Campaign</button>
+          <button class="btn btn-sm" onclick="document.getElementById('camp-bot-prompt').value=getCampaignDefaultPrompt()" style="background:#f1f5f9;border:none;color:var(--text)">Reset Prompt</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- EXISTING CAMPAIGNS -->
+    ${state.campaigns.length === 0 ? `<div style="text-align:center; padding:40px; color:var(--text-muted); font-size:14px">No campaigns yet — create one above</div>` :
+      state.campaigns.map(c => renderCampaignCard(c)).join('')
+    }
+  </div>`;
+}
+
+function getCampaignDefaultPrompt() {
+  const name = state.cfg.recruiterName || 'the NHRMS team';
+  return `You are ${name}, reaching out on behalf of NHRMS as part of a learning & development initiative. Your goal is to have a warm, genuine one-on-one conversation about the person's learning goals for 2026.
+
+Tone: conversational, encouraging, curious — not formal or scripted. You are a colleague, not a recruiter in this context.
+
+Your approach:
+1. Acknowledge their reply warmly
+2. Ask open-ended follow-up questions to draw out: what skills they want to build, what topics excite them, what challenges they want to overcome in 2026
+3. Share brief encouragement or reflection — make them feel heard
+4. After 3-4 exchanges, wrap up: thank them and let them know their input will help shape the team's learning agenda
+
+Rules:
+- One question at a time
+- Max 3 sentences per reply
+- Never mention recruitment or job openings in this conversation
+- If they go off-topic, gently redirect back to learning goals`;
+}
+
+function renderCampaignCard(c) {
+  const sent = c.members?.filter(m => m.sent).length || 0;
+  const replied = c.members?.filter(m => m.replied).length || 0;
+  const total = c.members?.length || 0;
+  const replyRate = sent > 0 ? Math.round((replied/sent)*100) : 0;
+  const statusColor = c.status === 'active' ? '#16a34a' : c.status === 'draft' ? '#f59e0b' : '#64748b';
+  const statusBg = c.status === 'active' ? '#f0fdf4' : c.status === 'draft' ? '#fef3c7' : '#f1f5f9';
+
+  // conversation summaries
+  const convEntries = Object.entries(c.conversations || {});
+  const recentReplies = convEntries
+    .filter(([id, msgs]) => msgs.some(m => m.role === 'user'))
+    .slice(-3)
+    .map(([id, msgs]) => {
+      const member = c.members?.find(m => m.id === id);
+      const lastUserMsg = [...msgs].reverse().find(m => m.role === 'user');
+      return `<div style="padding:8px 12px; background:#f8faff; border-radius:8px; margin-bottom:6px; font-size:12.5px">
+        <span style="font-weight:600; color:var(--text)">${member?.name || id.replace('@c.us','')}</span>
+        <span style="color:var(--text-muted); margin-left:8px">${lastUserMsg?.content?.slice(0,80)}${lastUserMsg?.content?.length > 80 ? '…' : ''}</span>
+      </div>`;
+    }).join('');
+
+  return `<div class="card" style="margin-bottom:16px">
+    <div class="card-header" style="padding-bottom:0">
+      <div style="flex:1">
+        <div style="display:flex; align-items:center; gap:10px; margin-bottom:4px">
+          <h3 style="margin:0">${c.name}</h3>
+          <span style="font-size:11px; font-weight:600; padding:2px 8px; border-radius:20px; background:${statusBg}; color:${statusColor}">${c.status}</span>
+        </div>
+        <div style="font-size:12px; color:var(--text-muted)">${total} members · ${sent} messaged · ${replied} replied (${replyRate}% reply rate)</div>
+      </div>
+      <div style="display:flex; gap:8px; align-items:center">
+        ${c.status === 'draft' ? `<button class="btn btn-primary" onclick="launchCampaign(${c.id})" style="font-size:12px; padding:6px 14px">Launch</button>` : ''}
+        ${c.status === 'active' ? `<button class="btn btn-sm" onclick="launchCampaign(${c.id})" style="background:#f0fdf4;color:#16a34a;border:1px solid #bbf7d0;font-size:12px" title="Re-send to unsent members">Resume</button>` : ''}
+        <button class="btn btn-sm" onclick="deleteCampaign(${c.id})" style="background:#fee2e2;color:#dc2626;border:none;font-size:12px">Delete</button>
+      </div>
+    </div>
+    <div class="card-body" style="padding-top:12px">
+      <!-- Progress bar -->
+      <div style="background:#f1f5f9; border-radius:4px; height:6px; margin-bottom:12px; overflow:hidden">
+        <div style="background:var(--primary); height:100%; width:${total > 0 ? Math.round((sent/total)*100) : 0}%; border-radius:4px; transition:.3s"></div>
+      </div>
+
+      <!-- Stats row -->
+      <div style="display:flex; gap:16px; margin-bottom:${recentReplies ? '12px' : '0'}; font-size:12px">
+        <div style="text-align:center; flex:1; background:#f8faff; border-radius:8px; padding:8px">
+          <div style="font-weight:700; font-size:18px; color:var(--primary)">${total}</div>
+          <div style="color:var(--text-muted)">Members</div>
+        </div>
+        <div style="text-align:center; flex:1; background:#f8faff; border-radius:8px; padding:8px">
+          <div style="font-weight:700; font-size:18px; color:#f59e0b">${sent}</div>
+          <div style="color:var(--text-muted)">Messaged</div>
+        </div>
+        <div style="text-align:center; flex:1; background:#f8faff; border-radius:8px; padding:8px">
+          <div style="font-weight:700; font-size:18px; color:#16a34a">${replied}</div>
+          <div style="color:var(--text-muted)">Replied</div>
+        </div>
+        <div style="text-align:center; flex:1; background:#f8faff; border-radius:8px; padding:8px">
+          <div style="font-weight:700; font-size:18px; color:var(--text)">${replyRate}%</div>
+          <div style="color:var(--text-muted)">Reply Rate</div>
+        </div>
+      </div>
+
+      <!-- Recent replies -->
+      ${recentReplies ? `<div style="margin-top:8px"><div style="font-size:11px; font-weight:600; color:var(--text-muted); margin-bottom:6px; text-transform:uppercase; letter-spacing:.05em">Recent Replies</div>${recentReplies}</div>` : ''}
+    </div>
+  </div>`;
+}
+
+async function loadCampaignMembers() {
+  const groupId = document.getElementById('camp-group-id')?.value?.trim();
+  if (!groupId) { toast('Enter a group ID first', 'error'); return; }
+  if (!state.cfg.greenInstance || !state.cfg.greenToken) { toast('Configure WhatsApp credentials first', 'error'); return; }
+  const preview = document.getElementById('camp-members-preview');
+  preview.innerHTML = `<div style="color:var(--text-muted); font-size:13px">Fetching members...</div>`;
+  try {
+    const members = await fetchGroupMembers(groupId);
+    if (!members.length) { preview.innerHTML = `<div style="color:var(--danger); font-size:13px">No members found or invalid group ID</div>`; return; }
+    preview.innerHTML = `<div style="background:#f0fdf4; border:1px solid #bbf7d0; border-radius:8px; padding:10px 14px">
+      <div style="font-size:12px; font-weight:600; color:#16a34a; margin-bottom:6px">${members.length} members found</div>
+      <div style="display:flex; flex-wrap:wrap; gap:6px">
+        ${members.map(m => `<span style="font-size:11.5px; background:#fff; border:1px solid #bbf7d0; border-radius:20px; padding:2px 10px; color:var(--text)">${m.name}</span>`).join('')}
+      </div>
+    </div>`;
+    preview.dataset.members = JSON.stringify(members);
+  } catch(e) {
+    preview.innerHTML = `<div style="color:var(--danger); font-size:13px">Error: ${e.message}</div>`;
+  }
+}
+
+function createCampaign() {
+  const name = document.getElementById('camp-name')?.value?.trim();
+  const openingMessage = document.getElementById('camp-opening-msg')?.value?.trim();
+  const botPrompt = document.getElementById('camp-bot-prompt')?.value?.trim();
+  const groupId = document.getElementById('camp-group-id')?.value?.trim();
+  const preview = document.getElementById('camp-members-preview');
+  const members = preview?.dataset.members ? JSON.parse(preview.dataset.members) : [];
+
+  if (!name) { toast('Enter a campaign name', 'error'); return; }
+  if (!openingMessage) { toast('Enter an opening message', 'error'); return; }
+  if (!members.length) { toast('Fetch group members first', 'error'); return; }
+
+  const campaign = {
+    id: Date.now(),
+    name,
+    groupId,
+    members,
+    openingMessage,
+    botPrompt,
+    status: 'draft',
+    conversations: {},
+    createdAt: Date.now()
+  };
+  state.campaigns.unshift(campaign);
+  saveCampaigns();
+  toast(`Campaign "${name}" created — ready to launch`);
+  renderCampaigns();
 }
 
 function startInboxPolling() {
@@ -2711,6 +3020,8 @@ function updateBadges() {
   document.getElementById('badge-candidates').textContent = job().candidates.length;
   document.getElementById('badge-wa').textContent = job().candidates.filter(c => c.status === 'shortlisted').length;
   document.getElementById('badge-cal').textContent = job().candidates.filter(c => c.status === 'shortlisted' || c.status === 'messaged').length;
+  const campBadge = document.getElementById('badge-campaigns');
+  if (campBadge) campBadge.textContent = state.campaigns.filter(c => c.status === 'active').length || state.campaigns.length;
 }
 
 // ─────────────────────────────────────────────
