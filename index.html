@@ -1874,8 +1874,8 @@ ${jdText.slice(0, 2000)}`;
       'anthropic-dangerous-direct-browser-access': 'true'
     },
     body: JSON.stringify({
-      model: 'claude-haiku-4-5-20251001',
-      max_tokens: 600,
+      model: 'claude-sonnet-4-6',
+      max_tokens: 800,
       messages: [{ role: 'user', content: prompt }]
     })
   });
@@ -2096,8 +2096,8 @@ async function autoBotReply(chatId, senderName, incomingText) {
         'anthropic-dangerous-direct-browser-access': 'true'
       },
       body: JSON.stringify({
-        model: 'claude-haiku-4-5-20251001',
-        max_tokens: 300,
+        model: 'claude-sonnet-4-6',
+        max_tokens: 500,
         system: systemPrompt,
         messages
       })
@@ -2218,10 +2218,10 @@ async function aiReply(chatId, incomingText) {
       method: 'POST',
       headers: { 'x-api-key': state.cfg.claudeKey, 'anthropic-version': '2023-06-01', 'Content-Type': 'application/json', 'anthropic-dangerous-direct-browser-access': 'true' },
       body: JSON.stringify({
-        model: 'claude-haiku-4-5-20251001',
-        max_tokens: 200,
-        messages: [{ role: 'user', content:
-          `You are ${cfg.recruiterName || 'a recruiter'} from NHRMS. Reply to this WhatsApp message from a candidate in 2-3 short sentences. Be warm, professional, and helpful.\n\nRole: ${cfg.jdTitle}\nCandidate message: "${incomingText}"\n\nWrite only the reply message, nothing else.` }]
+        model: 'claude-sonnet-4-6',
+        max_tokens: 400,
+        system: getBotSystemPrompt(),
+        messages: [{ role: 'user', content: incomingText }]
       })
     });
     const d = await res.json();
