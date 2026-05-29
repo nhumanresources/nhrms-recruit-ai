@@ -1407,7 +1407,8 @@ function renderChat() {
       <div class="chat-header">
         <div class="ai-avatar">🧠</div>
         <div>
-          <h3>Resume Stack Ranker</h3>
+          <h3>ScoutX Screening Assistant</h3>
+          <p style="font-size:11px;color:var(--text-muted);margin-top:1px">powered by nHRMS</p>
           <p>${job().candidates.length} candidates · ${shortlisted.length} shortlisted · ${job().jd ? 'JD loaded ✓' : 'No JD — add in Setup'}</p>
         </div>
       </div>
@@ -1425,7 +1426,7 @@ function renderChat() {
           <div class="msg-avatar">🧠</div>
           <div>
             <div class="msg-bubble">
-              👋 Hi! I have access to <strong>${job().candidates.length} candidates</strong> and your JD.
+              👋 Hi, I'm <strong>ScoutX Screening Assistant</strong>, powered by nHRMS. I have access to <strong>${job().candidates.length} candidates</strong> and your JD.
               <br><br>Ask me anything — I can shortlist candidates, compare profiles, generate interview questions, or analyze skill gaps. Try one of the quick actions above!
             </div>
             <span class="msg-time">Now</span>
