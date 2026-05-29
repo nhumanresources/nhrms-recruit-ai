@@ -2227,6 +2227,9 @@ async function launchCampaign(campaignId) {
 function deleteCampaign(campaignId) {
   if (!confirm('Delete this campaign and all its data?')) return;
   state.campaigns = state.campaigns.filter(c => c.id !== campaignId);
+  if (state.activeCampaignId === campaignId) {
+    state.activeCampaignId = state.campaigns[0]?.id || null;
+  }
   saveCampaigns();
   renderCampaigns();
 }
@@ -2234,23 +2237,84 @@ function deleteCampaign(campaignId) {
 // ─────────────────────────────────────────────
 //  CAMPAIGNS VIEW
 // ─────────────────────────────────────────────
+// Track which campaign is selected in the detail panel
+if (typeof state.activeCampaignId === 'undefined') state.activeCampaignId = null;
+
 function renderCampaigns() {
   const content = document.getElementById('content');
   const totalActive = state.campaigns.filter(c => c.status === 'active').length;
   const badge = document.getElementById('badge-campaigns');
-  if (badge) badge.textContent = totalActive || state.campaigns.length;
+  if (badge) badge.textContent = totalActive || (state.campaigns.length || '');
+
+  // Auto-select first campaign if none selected
+  if (!state.activeCampaignId && state.campaigns.length > 0) {
+    state.activeCampaignId = state.campaigns[0].id;
+  }
+
+  const activeCamp = state.campaigns.find(c => c.id === state.activeCampaignId);
 
   content.innerHTML = `
-  <div style="max-width:860px; margin:0 auto">
+  <div style="display:flex; gap:0; height:calc(100vh - 60px); overflow:hidden">
 
-    <!-- NEW CAMPAIGN CARD -->
-    <div class="card" style="margin-bottom:20px">
-      <div class="card-header">
-        <div class="card-icon" style="background:#eff6ff">🚀</div>
-        <div><h3>New Campaign</h3><p>Message a WhatsApp group individually — each person gets a private DM</p></div>
+    <!-- LEFT: Campaign List -->
+    <div style="width:260px; min-width:260px; background:#fff; border-right:1px solid var(--border); display:flex; flex-direction:column; overflow:hidden">
+      <div style="padding:14px 14px 10px; border-bottom:1px solid var(--border); display:flex; align-items:center; justify-content:space-between">
+        <div>
+          <div style="font-size:13px; font-weight:700; color:var(--text)">Campaigns</div>
+          <div style="font-size:11px; color:var(--text-muted)">${totalActive} active · ${state.campaigns.length} total</div>
+        </div>
+        <button onclick="openNewCampaignModal()" style="background:var(--primary);border:none;border-radius:7px;color:#fff;font-size:18px;width:30px;height:30px;cursor:pointer;display:flex;align-items:center;justify-content:center;line-height:1" title="New Campaign">+</button>
       </div>
-      <div class="card-body">
-        <div style="display:grid; grid-template-columns:1fr 1fr; gap:12px; margin-bottom:12px">
+      <div style="flex:1; overflow-y:auto; padding:8px">
+        ${state.campaigns.length === 0 ? `
+          <div style="text-align:center; padding:32px 12px; color:var(--text-muted); font-size:13px">
+            <div style="font-size:28px; margin-bottom:8px">🚀</div>
+            No campaigns yet<br>
+            <span style="font-size:12px">Click + to create one</span>
+          </div>` :
+          state.campaigns.map(c => {
+            const sent = c.members?.filter(m => m.sent).length || 0;
+            const replied = c.members?.filter(m => m.replied).length || 0;
+            const total = c.members?.length || 0;
+            const isSelected = c.id === state.activeCampaignId;
+            const statusDot = c.status === 'active' ? '#16a34a' : c.status === 'draft' ? '#f59e0b' : '#94a3b8';
+            return `<div onclick="selectCampaign(${c.id})" style="padding:10px 12px; border-radius:9px; cursor:pointer; margin-bottom:4px; background:${isSelected ? 'var(--primary-light)' : 'transparent'}; border:1px solid ${isSelected ? 'rgba(79,110,247,.2)' : 'transparent'}; transition:.15s">
+              <div style="display:flex; align-items:center; gap:7px; margin-bottom:3px">
+                <div style="width:7px;height:7px;border-radius:50%;background:${statusDot};flex-shrink:0"></div>
+                <div style="font-size:13px; font-weight:${isSelected ? '600' : '500'}; color:${isSelected ? 'var(--primary)' : 'var(--text)'}; white-space:nowrap; overflow:hidden; text-overflow:ellipsis">${c.name}</div>
+              </div>
+              <div style="font-size:11px; color:var(--text-muted); padding-left:14px">${total} members · ${replied} replied</div>
+            </div>`;
+          }).join('')
+        }
+      </div>
+    </div>
+
+    <!-- RIGHT: Campaign Detail or New Form -->
+    <div style="flex:1; overflow-y:auto; padding:24px 28px">
+      ${activeCamp ? renderCampaignDetail(activeCamp) : `
+        <div style="display:flex; flex-direction:column; align-items:center; justify-content:center; height:100%; color:var(--text-muted)">
+          <div style="font-size:48px; margin-bottom:16px">🚀</div>
+          <div style="font-size:16px; font-weight:600; margin-bottom:8px; color:var(--text)">No campaign selected</div>
+          <div style="font-size:14px; margin-bottom:20px">Create a campaign to start messaging your group</div>
+          <button class="btn btn-primary" onclick="openNewCampaignModal()">+ New Campaign</button>
+        </div>`
+      }
+    </div>
+  </div>
+
+  <!-- NEW CAMPAIGN MODAL -->
+  <div id="new-camp-modal" style="display:none; position:fixed; inset:0; z-index:1000; background:rgba(0,0,0,.4); align-items:center; justify-content:center">
+    <div style="background:#fff; border-radius:16px; width:600px; max-width:95vw; max-height:90vh; overflow-y:auto; box-shadow:var(--shadow-lg)">
+      <div style="padding:20px 24px 16px; border-bottom:1px solid var(--border); display:flex; align-items:center; justify-content:space-between">
+        <div>
+          <div style="font-size:16px; font-weight:700">New Campaign</div>
+          <div style="font-size:12px; color:var(--text-muted)">Each group member gets a private 1-on-1 DM with its own bot conversation</div>
+        </div>
+        <button onclick="closeNewCampaignModal()" style="background:none;border:none;font-size:20px;cursor:pointer;color:var(--text-muted);line-height:1">&times;</button>
+      </div>
+      <div style="padding:20px 24px">
+        <div style="display:grid; grid-template-columns:1fr 1fr; gap:12px; margin-bottom:14px">
           <div>
             <label style="font-size:12px; font-weight:600; color:var(--text-muted); display:block; margin-bottom:4px">Campaign Name</label>
             <input id="camp-name" type="text" class="form-input" placeholder="e.g. Learning Goals 2026" style="width:100%" />
@@ -2258,42 +2322,135 @@ function renderCampaigns() {
           <div>
             <label style="font-size:12px; font-weight:600; color:var(--text-muted); display:block; margin-bottom:4px">WhatsApp Group</label>
             <div style="display:flex; gap:8px; margin-bottom:6px">
-              <button class="btn btn-sm" onclick="browseGroups()" style="background:#f0fdf4;color:#16a34a;border:1px solid #bbf7d0;white-space:nowrap;font-weight:600">Browse My Groups</button>
-              <button class="btn btn-sm" onclick="loadCampaignMembers()" style="background:var(--primary);color:#fff;border:none;white-space:nowrap">Fetch Members</button>
+              <button class="btn btn-sm" onclick="browseGroups()" style="background:#f0fdf4;color:#16a34a;border:1px solid #bbf7d0;white-space:nowrap;font-weight:600;flex:1">Browse Groups</button>
+              <button class="btn btn-sm" onclick="loadCampaignMembers()" style="background:var(--primary);color:#fff;border:none;white-space:nowrap;flex:1">Fetch Members</button>
             </div>
             <div id="camp-group-picker" style="margin-bottom:6px; display:none">
               <select id="camp-group-select" class="form-input" style="width:100%" onchange="document.getElementById('camp-group-id').value=this.value">
                 <option value="">-- select a group --</option>
               </select>
             </div>
-            <input id="camp-group-id" type="text" class="form-input" placeholder="Group ID auto-filled when you pick above" style="width:100%; font-size:12px; color:var(--text-muted)" readonly />
+            <input id="camp-group-id" type="text" class="form-input" placeholder="Auto-filled from group picker" style="width:100%; font-size:12px; color:var(--text-muted)" readonly />
           </div>
         </div>
 
-        <div id="camp-members-preview" style="margin-bottom:12px"></div>
+        <div id="camp-members-preview" style="margin-bottom:14px"></div>
 
-        <div style="margin-bottom:12px">
-          <label style="font-size:12px; font-weight:600; color:var(--text-muted); display:block; margin-bottom:4px">Opening Message <span style="font-weight:400">(sent to each person as the first DM)</span></label>
-          <textarea id="camp-opening-msg" class="form-input" rows="3" style="width:100%; resize:vertical" placeholder="Hi [Name], this is ${state.cfg.recruiterName || 'the NHRMS team'}. We are checking in with everyone about learning goals for 2026..."></textarea>
+        <div style="margin-bottom:14px">
+          <label style="font-size:12px; font-weight:600; color:var(--text-muted); display:block; margin-bottom:4px">Opening Message</label>
+          <textarea id="camp-opening-msg" class="form-input" rows="3" style="width:100%; resize:vertical" placeholder="Hi, this is ${state.cfg.recruiterName || 'the NHRMS team'}. We are checking in about learning goals for 2026..."></textarea>
         </div>
 
-        <div style="margin-bottom:16px">
-          <label style="font-size:12px; font-weight:600; color:var(--text-muted); display:block; margin-bottom:4px">Bot Persona <span style="font-weight:400">(how the bot replies when they respond)</span></label>
-          <textarea id="camp-bot-prompt" class="form-input" rows="4" style="width:100%; resize:vertical">${getCampaignDefaultPrompt()}</textarea>
+        <div style="margin-bottom:18px">
+          <div style="display:flex; align-items:center; justify-content:space-between; margin-bottom:4px">
+            <label style="font-size:12px; font-weight:600; color:var(--text-muted)">Bot Persona <span style="font-weight:400">(replies to individual responses)</span></label>
+            <button onclick="document.getElementById('camp-bot-prompt').value=getCampaignDefaultPrompt()" style="font-size:11px;background:none;border:none;color:var(--primary);cursor:pointer;padding:0">Reset to default</button>
+          </div>
+          <textarea id="camp-bot-prompt" class="form-input" rows="5" style="width:100%; resize:vertical">${getCampaignDefaultPrompt()}</textarea>
         </div>
 
-        <div style="display:flex; gap:10px">
+        <div style="display:flex; gap:10px; justify-content:flex-end">
+          <button class="btn btn-sm" onclick="closeNewCampaignModal()" style="background:#f1f5f9;border:none;color:var(--text)">Cancel</button>
           <button class="btn btn-primary" onclick="createCampaign()">Create Campaign</button>
-          <button class="btn btn-sm" onclick="document.getElementById('camp-bot-prompt').value=getCampaignDefaultPrompt()" style="background:#f1f5f9;border:none;color:var(--text)">Reset Prompt</button>
         </div>
       </div>
     </div>
-
-    <!-- EXISTING CAMPAIGNS -->
-    ${state.campaigns.length === 0 ? `<div style="text-align:center; padding:40px; color:var(--text-muted); font-size:14px">No campaigns yet — create one above</div>` :
-      state.campaigns.map(c => renderCampaignCard(c)).join('')
-    }
   </div>`;
+}
+
+function openNewCampaignModal() {
+  const modal = document.getElementById('new-camp-modal');
+  if (modal) { modal.style.display = 'flex'; }
+}
+
+function closeNewCampaignModal() {
+  const modal = document.getElementById('new-camp-modal');
+  if (modal) modal.style.display = 'none';
+}
+
+function selectCampaign(id) {
+  state.activeCampaignId = id;
+  renderCampaigns();
+}
+
+function renderCampaignDetail(c) {
+  const sent = c.members?.filter(m => m.sent).length || 0;
+  const replied = c.members?.filter(m => m.replied).length || 0;
+  const total = c.members?.length || 0;
+  const replyRate = sent > 0 ? Math.round((replied / sent) * 100) : 0;
+  const statusColor = c.status === 'active' ? '#16a34a' : c.status === 'draft' ? '#f59e0b' : '#64748b';
+  const statusBg = c.status === 'active' ? '#f0fdf4' : c.status === 'draft' ? '#fef3c7' : '#f1f5f9';
+
+  // All conversations with at least one user reply
+  const convEntries = Object.entries(c.conversations || {})
+    .filter(([id, msgs]) => msgs.some(m => m.role === 'user'));
+
+  // All members with sent status
+  const memberRows = (c.members || []).map(m => {
+    const conv = c.conversations?.[m.id] || [];
+    const lastMsg = [...conv].reverse().find(msg => msg.role === 'user');
+    return `<div style="display:flex; align-items:center; gap:10px; padding:8px 0; border-bottom:1px solid #f1f5f9">
+      <div style="width:32px;height:32px;border-radius:50%;background:${m.replied ? '#dcfce7' : m.sent ? '#eff6ff' : '#f1f5f9'};display:flex;align-items:center;justify-content:center;font-size:13px;flex-shrink:0;font-weight:600;color:${m.replied ? '#16a34a' : m.sent ? 'var(--primary)' : 'var(--text-muted)'}">
+        ${m.name?.charAt(0)?.toUpperCase() || '?'}
+      </div>
+      <div style="flex:1; min-width:0">
+        <div style="font-size:13px; font-weight:500; color:var(--text)">${m.name || m.id.replace('@c.us','')}</div>
+        ${lastMsg ? `<div style="font-size:11.5px; color:var(--text-muted); white-space:nowrap; overflow:hidden; text-overflow:ellipsis">${lastMsg.content?.slice(0,60)}${lastMsg.content?.length > 60 ? '…' : ''}</div>` : `<div style="font-size:11.5px; color:var(--text-muted)">${m.sent ? 'Awaiting reply' : 'Not yet sent'}</div>`}
+      </div>
+      <div style="font-size:11px; font-weight:600; padding:2px 8px; border-radius:20px; background:${m.replied ? '#dcfce7' : m.sent ? '#eff6ff' : '#f1f5f9'}; color:${m.replied ? '#16a34a' : m.sent ? 'var(--primary)' : 'var(--text-muted)'}; white-space:nowrap; flex-shrink:0">
+        ${m.replied ? 'Replied' : m.sent ? 'Sent' : 'Pending'}
+      </div>
+    </div>`;
+  }).join('');
+
+  return `
+    <div style="max-width:740px">
+      <!-- Header -->
+      <div style="display:flex; align-items:flex-start; justify-content:space-between; margin-bottom:20px">
+        <div>
+          <div style="display:flex; align-items:center; gap:10px; margin-bottom:4px">
+            <h2 style="font-size:20px; font-weight:700; margin:0">${c.name}</h2>
+            <span style="font-size:11px; font-weight:600; padding:3px 10px; border-radius:20px; background:${statusBg}; color:${statusColor}">${c.status}</span>
+          </div>
+          <div style="font-size:13px; color:var(--text-muted)">${total} members · launched ${c.launchedAt ? new Date(c.launchedAt).toLocaleDateString() : 'not yet'}</div>
+        </div>
+        <div style="display:flex; gap:8px">
+          ${c.status === 'draft' ? `<button class="btn btn-primary" onclick="launchCampaign(${c.id})">Launch Campaign</button>` : ''}
+          ${c.status === 'active' ? `<button class="btn btn-sm" onclick="launchCampaign(${c.id})" style="background:#f0fdf4;color:#16a34a;border:1px solid #bbf7d0">Resume Sending</button>` : ''}
+          <button class="btn btn-sm" onclick="deleteCampaign(${c.id})" style="background:#fee2e2;color:#dc2626;border:none">Delete</button>
+        </div>
+      </div>
+
+      <!-- Stats -->
+      <div style="display:grid; grid-template-columns:repeat(4,1fr); gap:12px; margin-bottom:20px">
+        ${[['Members', total, 'var(--primary)'], ['Messaged', sent, '#f59e0b'], ['Replied', replied, '#16a34a'], ['Reply Rate', replyRate + '%', 'var(--text)']].map(([label, val, col]) => `
+          <div style="background:#fff; border:1px solid var(--border); border-radius:12px; padding:14px; text-align:center">
+            <div style="font-size:22px; font-weight:700; color:${col}">${val}</div>
+            <div style="font-size:12px; color:var(--text-muted); margin-top:2px">${label}</div>
+          </div>`).join('')}
+      </div>
+
+      <!-- Progress bar -->
+      <div style="background:#f1f5f9; border-radius:4px; height:7px; margin-bottom:20px; overflow:hidden">
+        <div style="background:var(--primary); height:100%; width:${total > 0 ? Math.round((sent/total)*100) : 0}%; border-radius:4px; transition:.3s"></div>
+      </div>
+
+      <!-- Opening message -->
+      <div class="card" style="margin-bottom:16px">
+        <div class="card-body" style="padding:14px 16px">
+          <div style="font-size:11px; font-weight:600; color:var(--text-muted); text-transform:uppercase; letter-spacing:.05em; margin-bottom:6px">Opening Message Sent</div>
+          <div style="font-size:13.5px; color:var(--text); line-height:1.6; white-space:pre-wrap">${c.openingMessage || '—'}</div>
+        </div>
+      </div>
+
+      <!-- Member list -->
+      <div class="card">
+        <div class="card-body" style="padding:14px 16px">
+          <div style="font-size:11px; font-weight:600; color:var(--text-muted); text-transform:uppercase; letter-spacing:.05em; margin-bottom:10px">Members (${total})</div>
+          ${memberRows || '<div style="color:var(--text-muted); font-size:13px">No members</div>'}
+        </div>
+      </div>
+    </div>`;
 }
 
 function getCampaignDefaultPrompt() {
@@ -2458,7 +2615,9 @@ function createCampaign() {
     createdAt: Date.now()
   };
   state.campaigns.unshift(campaign);
+  state.activeCampaignId = campaign.id;
   saveCampaigns();
+  closeNewCampaignModal();
   toast(`Campaign "${name}" created — ready to launch`);
   renderCampaigns();
 }
