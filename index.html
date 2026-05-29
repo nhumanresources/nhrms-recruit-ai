@@ -2256,12 +2256,17 @@ function renderCampaigns() {
             <input id="camp-name" type="text" class="form-input" placeholder="e.g. Learning Goals 2026" style="width:100%" />
           </div>
           <div>
-            <label style="font-size:12px; font-weight:600; color:var(--text-muted); display:block; margin-bottom:4px">WhatsApp Group ID</label>
-            <div style="display:flex; gap:8px">
-              <input id="camp-group-id" type="text" class="form-input" placeholder="120363XXXXXXXX@g.us" style="flex:1" />
+            <label style="font-size:12px; font-weight:600; color:var(--text-muted); display:block; margin-bottom:4px">WhatsApp Group</label>
+            <div style="display:flex; gap:8px; margin-bottom:6px">
+              <button class="btn btn-sm" onclick="browseGroups()" style="background:#f0fdf4;color:#16a34a;border:1px solid #bbf7d0;white-space:nowrap;font-weight:600">Browse My Groups</button>
               <button class="btn btn-sm" onclick="loadCampaignMembers()" style="background:var(--primary);color:#fff;border:none;white-space:nowrap">Fetch Members</button>
             </div>
-            <div style="font-size:11px; color:var(--text-muted); margin-top:3px">Find it in WhatsApp: open group > 3-dot menu > Group info — or paste a recent message chatId</div>
+            <div id="camp-group-picker" style="margin-bottom:6px; display:none">
+              <select id="camp-group-select" class="form-input" style="width:100%" onchange="document.getElementById('camp-group-id').value=this.value">
+                <option value="">-- select a group --</option>
+              </select>
+            </div>
+            <input id="camp-group-id" type="text" class="form-input" placeholder="Group ID auto-filled when you pick above" style="width:100%; font-size:12px; color:var(--text-muted)" readonly />
           </div>
         </div>
 
@@ -2377,6 +2382,35 @@ function renderCampaignCard(c) {
       ${recentReplies ? `<div style="margin-top:8px"><div style="font-size:11px; font-weight:600; color:var(--text-muted); margin-bottom:6px; text-transform:uppercase; letter-spacing:.05em">Recent Replies</div>${recentReplies}</div>` : ''}
     </div>
   </div>`;
+}
+
+async function browseGroups() {
+  if (!state.cfg.greenInstance || !state.cfg.greenToken) {
+    toast('Configure WhatsApp credentials in API Settings first', 'error'); return;
+  }
+  const btn = event.target;
+  btn.textContent = 'Loading...';
+  btn.disabled = true;
+  try {
+    const host = getGreenApiHost();
+    const res = await fetch(`${host}/waInstance${state.cfg.greenInstance}/getChats/${state.cfg.greenToken}`);
+    if (!res.ok) throw new Error(`HTTP ${res.status}`);
+    const chats = await res.json();
+    const groups = (chats || []).filter(c => c.id?.endsWith('@g.us') && c.name);
+    if (!groups.length) { toast('No groups found on this WhatsApp number', 'error'); return; }
+
+    const picker = document.getElementById('camp-group-picker');
+    const sel = document.getElementById('camp-group-select');
+    sel.innerHTML = `<option value="">-- select a group (${groups.length} found) --</option>` +
+      groups.map(g => `<option value="${g.id}">${g.name}</option>`).join('');
+    picker.style.display = 'block';
+    toast(`Found ${groups.length} groups — pick yours from the dropdown`);
+  } catch(e) {
+    toast(`Could not load groups: ${e.message}`, 'error');
+  } finally {
+    btn.textContent = 'Browse My Groups';
+    btn.disabled = false;
+  }
 }
 
 async function loadCampaignMembers() {
