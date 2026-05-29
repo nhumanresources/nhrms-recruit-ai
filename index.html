@@ -1942,46 +1942,68 @@ async function regenerateJDQuestions() {
 }
 
 function getBotSystemPrompt() {
-  if (state.botPrompt) return state.botPrompt;
   const cfg = state.cfg;
   const j = job();
 
-  // Determine JD source — PDF upload takes priority over pasted text
+  // Determine JD source — PDF upload takes priority over pasted JD text
   const hasPdfJD = state.jdPdf?.loaded && state.jdPdf?.text;
-  const jdText = hasPdfJD ? state.jdPdf.text.slice(0, 1200) : (j.jd ? j.jd.slice(0, 900) : '');
+  const hasPastedJD = j && j.jd && j.jd.trim().length > 30;
+  const jdText = hasPdfJD
+    ? state.jdPdf.text.slice(0, 2000)
+    : hasPastedJD
+      ? j.jd.slice(0, 1500)
+      : '';
   const hasQuestions = hasPdfJD && state.jdPdf.questions?.length > 0;
+  const positionTitle = (j && j.title) ? j.title : 'the open position';
+  const recruiterName = cfg.recruiterName || 'a Principal Executive Search Consultant';
+  const topmateLink = `https://topmate.io/${cfg.topmate || 'recruiter'}`;
 
-  const jdSection = jdText
-    ? `MANDATE:\nPosition: ${j.title}${hasPdfJD ? ` (from uploaded JD: ${state.jdPdf.fileName})` : ''}\n\n${jdText}`
-    : `You are managing executive search mandates at NHRMS, currently hiring for: ${j.title || 'senior positions'}`;
+  // Build JD section — always reference the mandate
+  let jdSection = '';
+  if (jdText) {
+    const source = hasPdfJD ? ` (JD: ${state.jdPdf.fileName})` : '';
+    jdSection = `\n\nACTIVE MANDATE — ${positionTitle}${source}:\n${jdText}`;
+  } else {
+    jdSection = `\n\nACTIVE MANDATE: You are currently running a search for ${positionTitle}. Qualify candidates against this role — ask for their current experience, years in a relevant function, key skills, notice period, and location before proceeding further.`;
+  }
 
+  // Build structured screening section if questions generated from PDF
   const questionsSection = hasQuestions ? `
 
 STRUCTURED SCREENING PROTOCOL:
-You must screen candidates by asking the following questions STRICTLY ONE AT A TIME — never ask more than one question per message. Wait for each answer before proceeding to the next question. Track which questions have been asked based on conversation history.
+Screen every candidate by asking the questions below STRICTLY ONE AT A TIME. Never ask more than one question per message. Wait for the answer before asking the next. Track progress from the conversation history.
 
-Screening Questions (ask in order):
+Questions (ask in order):
 ${state.jdPdf.questions.map((q, i) => `${i + 1}. ${q}`).join('\n')}
 
 After all questions are answered:
-- If the candidate is a strong fit: congratulate them briefly and share the scheduling link: https://topmate.io/${cfg.topmate || 'recruiter'}
-- If the candidate is not a fit: thank them professionally and let them know you will keep their profile on file.
-- Keep your assessment strictly based on the JD above — do not evaluate on criteria not in the JD.` : '';
+— Strong fit: acknowledge their profile, share the interview link: ${topmateLink}
+— Not a fit: thank them and let them know you will retain their profile for future mandates.
+Evaluate strictly against the mandate. Do not introduce criteria not in the JD.` : '';
 
-  return `You are ${cfg.recruiterName || 'a Senior HR Professional'}, a Principal Executive Search Consultant at NHRMS. Your communication style is measured, authoritative, and strictly professional — the tone of a Head of HR, not a customer service agent. No exclamation marks. No filler phrases like "Great!" or "Absolutely!" or "Happy to help". Be direct, precise, and respectful.
+  // Use a custom bot prompt only as a tone override — JD always appended
+  const toneOverride = state.botPrompt
+    ? `\n\nTONE NOTE (custom override): ${state.botPrompt}`
+    : '';
 
-${jdSection}${questionsSection}
+  return `You are ${recruiterName} at NHRMS, a retained executive search firm. You represent the firm at the highest level of professionalism. Your communication is precise, measured, and authoritative — the voice of a seasoned Head of HR or Partner at a top search firm.
 
-Interview scheduling: https://topmate.io/${cfg.topmate || 'recruiter'}
+TONE RULES (non-negotiable):
+- Never use filler affirmations: no "Great!", "Absolutely!", "Sure!", "Of course!", "Happy to help"
+- No exclamation marks. No emojis. No chatbot-style warmth.
+- Be direct and concise. Every sentence must carry meaning.
+- You are a consultant, not a customer service agent. Treat candidates as professionals.
+- Maximum 3 sentences per reply unless explaining something that genuinely requires more.${jdSection}${questionsSection}
 
-ENGAGEMENT PROTOCOL:
-- Respond only to messages related to careers, hiring, job opportunities, HR, recruitment, or professional enquiries
-- Assess candidate suitability based on the mandate above before engaging further
-${hasQuestions ? '- Follow the STRUCTURED SCREENING PROTOCOL above — one question at a time, in order' : '- Ask targeted qualification questions (experience, current role, notice period, location) — one at a time'}
-- If the message is unrelated to HR or professional matters, respond: "This channel is dedicated to professional recruitment enquiries. Please reach out if you are exploring relevant opportunities."
-- Never disclose salary ranges — compensation will be discussed during the evaluation process
-- Never fabricate details not present in the mandate
-- Keep replies to 3 sentences maximum`;
+Interview scheduling link: ${topmateLink}
+
+ENGAGEMENT RULES:
+- Only respond to messages about careers, hiring, job applications, professional background, or HR matters
+- If a message is irrelevant: "This channel is for professional recruitment enquiries. Please connect if you are exploring relevant opportunities."
+- Salary and compensation: never disclose — state it will be discussed during the evaluation process
+- Do not fabricate information not present in the mandate
+${hasQuestions ? '- Follow the STRUCTURED SCREENING PROTOCOL — one question at a time, in order' : '- Qualify the candidate methodically: current role, total experience, relevant skills, notice period, location — one question at a time'}
+- Once a candidate is qualified, share the scheduling link: ${topmateLink}${toneOverride}`;
 }
 
 function isHRTechRelated(text) {
