@@ -1304,6 +1304,7 @@ function candidateRow(c) {
       <div style="display:flex; gap:6px; flex-wrap:wrap">
         <button class="btn btn-sm" style="background:var(--success-light); color:#166534; border:1.5px solid #bbf7d0" onclick="setStatus(${c.id}, 'shortlisted')">✓ Shortlist</button>
         <button class="btn btn-sm" style="background:#f1f5f9; color:var(--text-muted); border:1.5px solid var(--border)" onclick="setStatus(${c.id}, 'rejected')">✗ Reject</button>
+        ${c.phone ? `<button class="btn btn-sm" style="background:#eff6ff;color:var(--primary);border:1.5px solid #bfdbfe" onclick="sendProactiveOutreach(${c.id})" title="AI-drafted outreach">Reach Out</button>` : ''}
       </div>
     </td>
   </tr>`;
@@ -1689,13 +1690,19 @@ function renderWhatsApp() {
         </div>
         <div class="card-body" id="inbox-body">
           ${inbox.length === 0 ? `<p style="font-size:13px;color:var(--text-muted);text-align:center;padding:16px 0">No replies yet — click Refresh to check</p>` :
-            inbox.map(m => `
-            <div style="border:1px solid var(--border);border-radius:8px;padding:12px;margin-bottom:8px">
-              <div style="display:flex;justify-content:space-between;margin-bottom:4px">
+            inbox.map(m => {
+              const summary = job().candidateSummaries?.[m.from];
+              return `
+            <div style="border:1px solid var(--border);border-radius:10px;padding:12px;margin-bottom:8px">
+              <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:4px">
                 <strong style="font-size:13px">${escHtml(m.senderName || m.from)}</strong>
                 <span style="font-size:11px;color:var(--text-muted)">${new Date(m.time).toLocaleTimeString()}</span>
               </div>
               <div style="font-size:13px;color:var(--text);white-space:pre-wrap;margin-bottom:10px">${escHtml(m.text)}</div>
+              ${summary ? `<div style="background:#f0fdf4;border:1px solid #bbf7d0;border-radius:7px;padding:8px 10px;margin-bottom:10px;font-size:12px;color:#166534;line-height:1.6">
+                <span style="font-weight:700;font-size:11px;text-transform:uppercase;letter-spacing:.04em;display:block;margin-bottom:3px">Candidate Brief</span>
+                ${escHtml(summary.summary)}
+              </div>` : ''}
               <div style="display:flex;gap:8px">
                 <input type="text" id="reply-${m.id}" placeholder="Type reply…"
                   style="flex:1;padding:6px 10px;border:1px solid var(--border);border-radius:6px;font-size:12px;outline:none"
@@ -1703,7 +1710,7 @@ function renderWhatsApp() {
                 <button class="btn btn-outline btn-sm" onclick="sendReply('${m.from}',document.getElementById('reply-${m.id}').value)">Send</button>
                 ${state.cfg.claudeKey ? `<button class="btn btn-sm" style="background:#6c47d4;color:#fff;border:none;cursor:pointer" onclick="aiReply('${m.from}',${JSON.stringify(m.text).replace(/'/g,"&#39;")})">🤖 AI</button>` : ''}
               </div>
-            </div>`).join('')}
+            </div>`;}).join('')}
         </div>
       </div>` : `<div style="margin-top:16px;padding:12px 16px;background:var(--warning-light);border-radius:8px;font-size:12.5px;color:#92400e">
         💡 Add Green API credentials in ⚙️ Settings to enable inbox & auto-reply
@@ -1904,6 +1911,38 @@ ${jdText.slice(0, 2000)}`;
   }
 }
 
+// ── FEATURE 3: Smart JD structured extraction ──
+async function extractJDStructured(jdText) {
+  if (!state.cfg.claudeKey) return null;
+  const prompt = `Analyse this Job Description and extract key structured data. Return ONLY valid JSON, no explanation:
+{
+  "title": "exact job title",
+  "company": "company name or null",
+  "location": "location or 'Remote' or null",
+  "seniority": "e.g. Senior, Lead, Manager, Junior",
+  "summary": "one sentence describing the role — max 15 words",
+  "topRequirements": ["req 1", "req 2", "req 3"],
+  "perks": ["perk 1", "perk 2"],
+  "teaser": "one punchy line a recruiter would say to pitch this role — max 12 words, casual WhatsApp style"
+}
+
+JOB DESCRIPTION:
+${jdText.slice(0, 2000)}`;
+
+  try {
+    const res = await fetch('https://api.anthropic.com/v1/messages', {
+      method: 'POST',
+      headers: { 'x-api-key': state.cfg.claudeKey, 'anthropic-version': '2023-06-01', 'Content-Type': 'application/json', 'anthropic-dangerous-direct-browser-access': 'true' },
+      body: JSON.stringify({ model: 'claude-opus-4-6', max_tokens: 600, messages: [{ role: 'user', content: prompt }] })
+    });
+    const d = await res.json();
+    const raw = d.content?.[0]?.text?.trim();
+    const m = raw.match(/\{[\s\S]*\}/);
+    if (m) return JSON.parse(m[0]);
+  } catch(e) { console.warn('JD structured extraction failed', e); }
+  return null;
+}
+
 async function handleJDPdfUpload(input) {
   const file = input.files?.[0];
   if (!file) return;
@@ -1919,16 +1958,25 @@ async function handleJDPdfUpload(input) {
     state.jdPdf.fileName = file.name;
     state.jdPdf.loaded = true;
     state.jdPdf.questions = [];
+    state.jdPdf.structured = null;
     saveJDPdf();
-    toast('📄 JD extracted — generating screening questions…');
-    if (btn) { btn.textContent = '🧠 Generating questions…'; }
-    const questions = await generateJDQuestions(text);
-    if (questions && questions.length) {
-      state.jdPdf.questions = questions;
-      saveJDPdf();
-      toast(`✅ ${questions.length} screening questions ready!`, 'success');
+    toast('📄 JD extracted — analysing role & generating questions…');
+    if (btn) { btn.textContent = '🧠 Analysing JD…'; }
+
+    // Run both in parallel — structured extraction + screening questions
+    const [questions, structured] = await Promise.all([
+      generateJDQuestions(text),
+      extractJDStructured(text)
+    ]);
+
+    if (questions && questions.length) { state.jdPdf.questions = questions; }
+    if (structured) { state.jdPdf.structured = structured; }
+    saveJDPdf();
+
+    if (questions?.length) {
+      toast(`✅ JD ready — ${questions.length} questions + role card generated`, 'success');
     } else {
-      toast('JD loaded — could not auto-generate questions (check Claude key)', 'error');
+      toast('JD loaded — check Claude key for question generation', 'error');
     }
   } catch(e) {
     toast(`❌ PDF error: ${e.message}`, 'error');
@@ -1970,13 +2018,25 @@ function getBotSystemPrompt() {
   const recruiterName = cfg.recruiterName || 'a Principal Executive Search Consultant';
   const topmateLink = `https://topmate.io/${cfg.topmate || 'recruiter'}`;
 
+  // FEATURE 3: Build structured role card if available
+  const structured = state.jdPdf?.structured;
+  const roleCard = structured ? `\n\nROLE CARD (use these facts to answer candidate questions naturally):
+Title: ${structured.title || positionTitle}
+${structured.company ? `Company: ${structured.company}` : ''}
+${structured.location ? `Location: ${structured.location}` : ''}
+Seniority: ${structured.seniority || ''}
+Summary: ${structured.summary || ''}
+Top requirements: ${(structured.topRequirements || []).join(', ')}
+${structured.perks?.length ? `Perks: ${structured.perks.join(', ')}` : ''}
+Role teaser (use for introductions): "${structured.teaser || ''}"` : '';
+
   // Build JD section — always reference the mandate
   let jdSection = '';
   if (jdText) {
     const source = hasPdfJD ? ` (JD: ${state.jdPdf.fileName})` : '';
-    jdSection = `\n\nACTIVE MANDATE — ${positionTitle}${source}:\n${jdText}`;
+    jdSection = `\n\nFULL JD — ${positionTitle}${source}:\n${jdText}${roleCard}`;
   } else {
-    jdSection = `\n\nACTIVE MANDATE: You are currently running a search for ${positionTitle}. Qualify candidates against this role — ask for their current experience, years in a relevant function, key skills, notice period, and location before proceeding further.`;
+    jdSection = `\n\nACTIVE MANDATE: Hiring for ${positionTitle}. Qualify candidates — experience, skills, notice period, location.${roleCard}`;
   }
 
   // Build structured screening section if questions generated from PDF
@@ -2003,23 +2063,31 @@ Evaluate strictly against the mandate. Do not introduce criteria not in the JD.`
 WRITING RULES — follow exactly, no exceptions:
 - Max 1 sentence per reply. 2 sentences only if truly unavoidable.
 - Max 8-9 words per sentence. Firm. Clear. Human.
-- Tone: assertive but warm — like a senior HR professional who is genuinely helpful.
-- Make candidates feel comfortable sharing — ask open questions, give them space to talk.
+- Tone: assertive but warm. Make candidates feel heard and comfortable sharing.
 - Write like a WhatsApp text from a real person. Casual but sharp.
 - No greetings, sign-offs, or filler. Get straight to the point.
 - No bullet points, formatting, or lists in replies.
 - No "Great!", "Sure!", "Absolutely!", "Of course!", "Happy to help", "Noted".
 - No exclamation marks.${jdSection}${questionsSection}
 
-Interview link (share when candidate is qualified): ${topmateLink}
+FEATURE 1 — ROLE INTRODUCTION (first message only):
+If conversation history shows 0 or 1 messages total (candidate just reached out), do NOT start with a question. Open with the role teaser from the Role Card above — one short punchy line about the position. Then begin screening from the next message.
+
+FEATURE 2 — ANSWER ROLE QUESTIONS FROM JD:
+If the candidate asks about the role ("what does this involve?", "is it remote?", "what skills?", "what company?") — answer directly and briefly using the Role Card and JD. Never say you don't have that info.
+
+FEATURE 4 — SELL THE ROLE TO STRONG CANDIDATES:
+When a candidate gives a strong answer, briefly acknowledge the fit and tie it to why this role suits them — one short sentence before moving to the next question.
+
+Interview link (share when candidate is clearly a fit): ${topmateLink}
 
 ENGAGEMENT RULES:
 - Only engage on hiring, careers, or professional background
-- Off-topic messages: "This is for hiring enquiries only."
-- Salary: never share — "We'll discuss that in the process."
-- Never make up anything not in the mandate
-${hasQuestions ? '- SCREENING PROTOCOL: one question at a time, in order, wait for answer' : '- Ask one qualifying question at a time: role, experience, skills, notice, location'}
-- Share interview link only once candidate is clearly suitable${toneOverride}`;
+- Off-topic: "This is for hiring enquiries only."
+- Salary: "We discuss that during the process."
+- Never fabricate anything not in the JD
+${hasQuestions ? '- SCREENING PROTOCOL: one question at a time, in order, wait for answer before proceeding' : '- Qualify one at a time: current role, experience, skills, notice period, location'}
+- Share interview link once candidate is clearly suitable${toneOverride}`;
 }
 
 function isHRTechRelated(text) {
@@ -2136,9 +2204,109 @@ async function autoBotReply(chatId, senderName, incomingText) {
     await sendReply(chatId, reply);
     toast(`🤖 Auto-replied to ${senderName}`, 'success');
     renderInboxSection();
+
+    // FEATURE 5 — auto-generate candidate summary after enough exchanges
+    const conv = job().conversations[chatId] || [];
+    const totalQuestions = state.jdPdf?.questions?.length || 4;
+    const userTurns = conv.filter(m => m.role === 'user').length;
+    const alreadySummarised = job().candidateSummaries?.[chatId];
+    if (!alreadySummarised && userTurns >= totalQuestions && state.cfg.claudeKey) {
+      generateCandidateSummary(chatId, senderName).catch(() => {});
+    }
   } catch(e) {
     console.error('autoBotReply error', e);
     toast(`⚠️ Bot reply failed: ${e.message}`, 'error');
+  }
+}
+
+// ── FEATURE 5: Auto candidate summary after screening ──
+async function generateCandidateSummary(chatId, senderName) {
+  const conv = job().conversations?.[chatId] || [];
+  if (conv.length < 4) return;
+  const transcript = conv.map(m => `${m.role === 'user' ? senderName : 'Recruiter'}: ${m.content}`).join('\n');
+  const jdContext = state.jdPdf?.structured?.summary || job().title || 'the open position';
+
+  try {
+    const res = await fetch('https://api.anthropic.com/v1/messages', {
+      method: 'POST',
+      headers: { 'x-api-key': state.cfg.claudeKey, 'anthropic-version': '2023-06-01', 'Content-Type': 'application/json', 'anthropic-dangerous-direct-browser-access': 'true' },
+      body: JSON.stringify({
+        model: 'claude-opus-4-6',
+        max_tokens: 300,
+        messages: [{ role: 'user', content: `You are a recruiter reviewing a WhatsApp screening conversation for: ${jdContext}
+
+Conversation:
+${transcript}
+
+Write a 3-line candidate brief for the recruiter:
+Line 1: Fit rating (Strong Fit / Possible Fit / Not a Fit) + one-line reason
+Line 2: Strongest point from the conversation
+Line 3: Main concern or gap (if any), else "No red flags"
+
+Be blunt. Max 12 words per line.` }]
+      })
+    });
+    const d = await res.json();
+    const summary = d.content?.[0]?.text?.trim();
+    if (!summary) return;
+    job().candidateSummaries = job().candidateSummaries || {};
+    job().candidateSummaries[chatId] = { summary, name: senderName, time: Date.now() };
+    saveJobs();
+    toast(`📋 Candidate brief ready for ${senderName}`, 'success');
+    renderInboxSection();
+  } catch(e) { console.warn('Summary generation failed', e); }
+}
+
+// ── FEATURE 6: Proactive outreach to shortlisted candidates ──
+async function sendProactiveOutreach(candidateId) {
+  const c = job().candidates.find(x => x.id === candidateId);
+  if (!c || !c.phone) { toast('No phone number for this candidate', 'error'); return; }
+  if (!state.cfg.greenInstance || !state.cfg.greenToken) { toast('WhatsApp not configured', 'error'); return; }
+  if (!state.cfg.claudeKey) { toast('Claude API key required', 'error'); return; }
+
+  const jdTitle = state.jdPdf?.structured?.title || job().title || 'a senior opening';
+  const teaser = state.jdPdf?.structured?.teaser || '';
+  const candidateProfile = `${c.name}, ${c.role || ''}, ${c.experience ? c.experience + ' yrs exp' : ''}, skills: ${c.skills || ''}`;
+
+  try {
+    const res = await fetch('https://api.anthropic.com/v1/messages', {
+      method: 'POST',
+      headers: { 'x-api-key': state.cfg.claudeKey, 'anthropic-version': '2023-06-01', 'Content-Type': 'application/json', 'anthropic-dangerous-direct-browser-access': 'true' },
+      body: JSON.stringify({
+        model: 'claude-opus-4-6',
+        max_tokens: 120,
+        messages: [{ role: 'user', content: `You are a senior recruiter writing a first WhatsApp message to a candidate.
+
+Role: ${jdTitle}
+${teaser ? `Role teaser: ${teaser}` : ''}
+Candidate: ${candidateProfile}
+
+Write ONE short opening message — max 2 sentences, max 10 words each. Personalise it to their background. Sound like a real human, not a bot. No greetings, no "Hi [name]", no exclamation marks. Just the pitch.` }]
+      })
+    });
+    const d = await res.json();
+    const msg = d.content?.[0]?.text?.trim();
+    if (!msg) { toast('Could not generate message', 'error'); return; }
+
+    // Show preview and confirm before sending
+    const confirmed = confirm(`Send to ${c.name} (${c.phone})?\n\n"${msg}"`);
+    if (!confirmed) return;
+
+    const phone = c.phone.replace(/\D/g, '');
+    const chatId = `${phone}@c.us`;
+    await sendReply(chatId, msg);
+
+    // Mark as messaged and seed conversation
+    c.status = 'messaged';
+    job().conversations = job().conversations || {};
+    job().conversations[chatId] = job().conversations[chatId] || [];
+    job().conversations[chatId].push({ role: 'assistant', content: msg, time: Date.now() });
+    saveJobs();
+    updateBadges();
+    filterCandidates();
+    toast(`Outreach sent to ${c.name}`, 'success');
+  } catch(e) {
+    toast(`Failed: ${e.message}`, 'error');
   }
 }
 
