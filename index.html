@@ -568,23 +568,8 @@
 
     <div id="google-btn-wrap"></div>
 
-    <div class="login-cfg-link">
-      Don't have a Google Client ID? <a onclick="toggleSetup()">Set up Google Sign-In →</a>
-    </div>
-
-    <div class="login-setup-box" id="setup-box">
-      <h4>⚙️ Configure Google Sign-In</h4>
-      <p>You need a free Google Client ID to enable Sign in with Google. Takes ~2 minutes:</p>
-      <ol>
-        <li>Go to <strong>console.cloud.google.com</strong></li>
-        <li>Create a project → APIs &amp; Services → Credentials</li>
-        <li>Click <strong>Create Credentials → OAuth Client ID</strong></li>
-        <li>Select <strong>Web application</strong></li>
-        <li>Under Authorised JavaScript origins, add:<br/><code style="font-size:11px;background:#e8ecff;padding:2px 6px;border-radius:4px">https://nhumanresources.github.io</code></li>
-        <li>Copy the Client ID and paste below</li>
-      </ol>
-      <input type="text" id="client-id-input" placeholder="Paste your Google Client ID here (ends in .apps.googleusercontent.com)" />
-      <button class="btn btn-primary" style="width:100%" onclick="saveClientId()">✅ Save & Reload</button>
+    <div class="login-footer-note" style="text-align:center;font-size:12px;color:#94a3b8;margin-top:16px">
+      Access restricted to NHRMS & RYT organisation members
     </div>
   </div>
 </div>
@@ -728,7 +713,8 @@
 // ─────────────────────────────────────────────
 const AUTH = {
   user: null,
-  clientId: localStorage.getItem('nhrms_gcid') || ''
+  // Client ID hardcoded so all users see Sign in with Google without any setup
+  clientId: '219972806494-34im3769h6d3vqv6iqvm4t4ejljjrncl.apps.googleusercontent.com'
 };
 
 function initGoogleAuth() {
