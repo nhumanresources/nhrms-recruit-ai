@@ -624,7 +624,7 @@
     <div class="topbar-actions">
       <span id="topbar-status" style="font-size:13px; color:var(--text-muted)"></span>
       <button class="btn btn-primary" id="topbar-action-btn" onclick="runAIScreening()" style="display:none">
-        Run AI Screening
+        Run Screening
       </button>
       <div class="user-pill" id="user-pill" onclick="toggleUserMenu()" style="display:none">
         <div class="user-avatar" id="user-avatar-el"></div>
@@ -1102,7 +1102,7 @@ function renderSetup() {
         <div class="card-icon" style="background:#f0fdf4">📋</div>
         <div>
           <h3>Job Description</h3>
-          <p>Paste the JD — AI will screen candidates against this</p>
+          <p>Paste the JD — candidates will be screened against this</p>
         </div>
       </div>
       <div class="card-body">
@@ -1153,7 +1153,7 @@ E.g.: We are hiring a Senior Full-Stack Engineer with 5+ years experience in Rea
     </div>
     <div class="card-body">
       <div style="display:grid; grid-template-columns:repeat(5,1fr); gap:12px; margin-top:4px">
-        ${['1. Upload CSV', '2. Paste JD', '3. AI Screens Candidates', '4. WhatsApp Shortlisted', '5. Book Interviews via Topmate'].map((s,i) => `
+        ${['1. Upload CSV', '2. Paste JD', '3. Screen Candidates', '4. WhatsApp Shortlisted', '5. Book Interviews via Topmate'].map((s,i) => `
           <div style="text-align:center; padding:16px 10px; background:#f8faff; border-radius:10px; border:1.5px solid #e8ecff">
             <div style="font-size:24px; margin-bottom:8px">${['📊','📋','🧠','💬','📅'][i]}</div>
             <div style="font-size:12.5px; font-weight:600; color:var(--text)">${s}</div>
@@ -1251,7 +1251,7 @@ function renderCandidates() {
         <option value="shortlisted">Shortlisted</option>
         <option value="rejected">Rejected</option>
       </select>
-      <button class="btn btn-primary btn-sm" onclick="runAIScreening()">🧠 Run AI Screening</button>
+      <button class="btn btn-primary btn-sm" onclick="runAIScreening()">Run Screening</button>
     </div>
     <div class="table-wrap">
       <table>
@@ -1261,7 +1261,7 @@ function renderCandidates() {
             <th>Contact</th>
             <th>Role / Experience</th>
             <th>Skills</th>
-            <th>AI Score</th>
+            <th>Match Score</th>
             <th>Status</th>
             <th>Actions</th>
           </tr>
@@ -1325,7 +1325,7 @@ function candidateRow(c) {
       <div style="display:flex; gap:6px; flex-wrap:wrap">
         <button class="btn btn-sm" style="background:var(--success-light); color:#166534; border:1.5px solid #bbf7d0" onclick="setStatus(${c.id}, 'shortlisted')">✓ Shortlist</button>
         <button class="btn btn-sm" style="background:#f1f5f9; color:var(--text-muted); border:1.5px solid var(--border)" onclick="setStatus(${c.id}, 'rejected')">✗ Reject</button>
-        ${c.phone ? `<button class="btn btn-sm" style="background:#eff6ff;color:var(--primary);border:1.5px solid #bfdbfe" onclick="sendProactiveOutreach(${c.id})" title="AI-drafted outreach">Reach Out</button>` : ''}
+        ${c.phone ? `<button class="btn btn-sm" style="background:#eff6ff;color:var(--primary);border:1.5px solid #bfdbfe" onclick="sendProactiveOutreach(${c.id})" title="Send outreach">Reach Out</button>` : ''}
       </div>
     </td>
   </tr>`;
@@ -1344,7 +1344,7 @@ async function runAIScreening() {
   if (!job().jd) { toast('Please add a Job Description first', 'error'); navigate('setup'); return; }
   if (!job().candidates.length) { toast('No candidates loaded', 'error'); return; }
 
-  toast('🧠 AI screening started...');
+  toast('Screening started...');
   navigate('candidates');
 
   const unscreened = job().candidates.filter(c => c.score === null);
@@ -1389,7 +1389,7 @@ Rules:
     const sl = scores.filter(s => s.status === 'shortlisted').length;
     toast(`✅ Screened ${scores.length} candidates — ${sl} shortlisted!`, 'success');
   } catch (err) {
-    toast('AI screening failed: ' + err.message, 'error');
+    toast('Screening failed: ' + err.message, 'error');
     console.error(err);
   }
 }
@@ -1407,7 +1407,7 @@ function renderChat() {
       <div class="chat-header">
         <div class="ai-avatar">🧠</div>
         <div>
-          <h3>Claude AI Screener</h3>
+          <h3>Resume Stack Ranker</h3>
           <p>${job().candidates.length} candidates · ${shortlisted.length} shortlisted · ${job().jd ? 'JD loaded ✓' : 'No JD — add in Setup'}</p>
         </div>
       </div>
@@ -1425,7 +1425,7 @@ function renderChat() {
           <div class="msg-avatar">🧠</div>
           <div>
             <div class="msg-bubble">
-              👋 Hi! I'm your AI recruiting assistant. I have access to <strong>${job().candidates.length} candidates</strong> and your JD.
+              👋 Hi! I have access to <strong>${job().candidates.length} candidates</strong> and your JD.
               <br><br>Ask me anything — I can shortlist candidates, compare profiles, generate interview questions, or analyze skill gaps. Try one of the quick actions above!
             </div>
             <span class="msg-time">Now</span>
@@ -1443,20 +1443,20 @@ function renderChat() {
     <div class="shortlist-sidebar">
       <div class="shortlist-header">
         <h4>⭐ Shortlisted (${shortlisted.length})</h4>
-        <p>AI-screened top candidates</p>
+        <p>Top ranked candidates</p>
       </div>
       <div class="shortlist-items">
         ${shortlisted.length === 0 ? `
         <div style="text-align:center; padding:30px 16px; color:var(--text-muted)">
           <div style="font-size:32px; margin-bottom:8px">🔍</div>
-          <p style="font-size:13px">Run AI Screening on the Candidates tab to shortlist profiles</p>
+          <p style="font-size:13px">Run Screening on the Candidates tab to shortlist profiles</p>
         </div>` : shortlisted.map(c => `
         <div class="shortlist-card">
           <div class="sc-name">${escHtml(c.name)}</div>
           <div class="sc-role">${escHtml(c.role)} · ${escHtml(c.experience || '?')} yrs</div>
           ${c.score ? `<div class="sc-score">⭐ ${c.score}% match</div>` : ''}
           <div class="sc-actions">
-            <button class="btn btn-sm btn-wa" onclick="quickAsk('Tell me more about ${escHtml(c.name)} and why they are a good fit')">Ask AI</button>
+            <button class="btn btn-sm btn-wa" onclick="quickAsk('Tell me more about ${escHtml(c.name)} and why they are a good fit')">Ask</button>
             <button class="btn btn-sm btn-outline" onclick="navigate('whatsapp')">💬 WA</button>
           </div>
         </div>`).join('')}
@@ -1658,7 +1658,7 @@ function renderWhatsApp() {
   const hasBot = !!(state.cfg.greenInstance && state.cfg.greenToken);
 
   if (!shortlisted.length) {
-    content.innerHTML = `<div class="empty-state"><div class="empty-icon">💬</div><p>No candidates to message. Run AI Screening first or upload candidates.</p></div>`;
+    content.innerHTML = `<div class="empty-state"><div class="empty-icon">💬</div><p>No candidates to message. Run Screening first or upload candidates.</p></div>`;
     return;
   }
 
@@ -1729,7 +1729,7 @@ function renderWhatsApp() {
                   style="flex:1;padding:6px 10px;border:1px solid var(--border);border-radius:6px;font-size:12px;outline:none"
                   onkeydown="if(event.key==='Enter')sendReply('${m.from}',document.getElementById('reply-${m.id}').value)" />
                 <button class="btn btn-outline btn-sm" onclick="sendReply('${m.from}',document.getElementById('reply-${m.id}').value)">Send</button>
-                ${state.cfg.claudeKey ? `<button class="btn btn-sm" style="background:#6c47d4;color:#fff;border:none;cursor:pointer" onclick="aiReply('${m.from}',${JSON.stringify(m.text).replace(/'/g,"&#39;")})">🤖 AI</button>` : ''}
+                ${state.cfg.claudeKey ? `<button class="btn btn-sm" style="background:var(--primary);color:#fff;border:none;cursor:pointer" onclick="aiReply('${m.from}',${JSON.stringify(m.text).replace(/'/g,"&#39;")})">Draft Reply</button>` : ''}
               </div>
             </div>`;}).join('')}
         </div>
@@ -1800,7 +1800,7 @@ function renderWhatsApp() {
             <input type="file" id="jd-pdf-file" accept=".pdf,application/pdf" onchange="handleJDPdfUpload(this)" />
             <div style="font-size:28px; margin-bottom:6px">📤</div>
             <div style="font-size:13px; font-weight:600; color:var(--text)">Drop JD PDF here or click to browse</div>
-            <div style="font-size:12px; color:var(--text-muted); margin-top:3px">AI will extract the text and generate 6 targeted screening questions</div>
+            <div style="font-size:12px; color:var(--text-muted); margin-top:3px">Text will be extracted and 6 targeted screening questions generated</div>
           </div>
           ${job().jd ? `<div style="margin-top:8px; font-size:11.5px; color:var(--text-muted); text-align:center">
             💡 Or <strong>use pasted JD</strong> from Setup — no upload needed, bot reads it automatically
@@ -2924,15 +2924,15 @@ async function aiReply(chatId, incomingText) {
     });
     const d = await res.json();
     const reply = d.content?.[0]?.text?.trim();
-    if (!reply) { toast('AI returned empty reply', 'error'); return; }
+    if (!reply) { toast('Empty reply returned', 'error'); return; }
     // Fill reply box for the matching message
     const inputs = document.querySelectorAll('[id^="reply-"]');
     inputs.forEach(inp => { if (inp.closest('[data-from]')?.dataset.from === chatId || inputs.length === 1) inp.value = reply; });
     // find any reply input near the AI button
     const allInputs = document.querySelectorAll(`input[type="text"]`);
     allInputs.forEach(i => { if (i.id.startsWith('reply-')) i.value = reply; });
-    toast('🤖 AI reply ready — review & send!', 'success');
-  } catch(e) { toast('AI error: ' + e.message, 'error'); }
+    toast('Reply ready — review & send!', 'success');
+  } catch(e) { toast('Error: ' + e.message, 'error'); }
 }
 
 function toggleWA(id) {
@@ -3480,7 +3480,7 @@ function openChatWindow() {
             style="flex:1; padding:8px 12px; border:1px solid #e2e8f0; border-radius:20px; font-size:13px; outline:none; font-family:inherit"
             onkeydown="if(event.key==='Enter') chatWinSend()" />
           <button onclick="chatWinSend()" style="background:#25D366;border:none;border-radius:50%;width:38px;height:38px;color:#fff;font-size:16px;cursor:pointer;display:flex;align-items:center;justify-content:center;flex-shrink:0">➤</button>
-          ${state.cfg.claudeKey ? `<button onclick="chatWinAI()" title="AI draft reply" style="background:#6c47d4;border:none;border-radius:50%;width:38px;height:38px;color:#fff;font-size:14px;cursor:pointer;display:flex;align-items:center;justify-content:center;flex-shrink:0">🤖</button>` : ''}
+          ${state.cfg.claudeKey ? `<button onclick="chatWinAI()" title="Draft reply" style="background:var(--primary);border:none;border-radius:50%;width:38px;height:38px;color:#fff;font-size:11px;font-weight:600;cursor:pointer;display:flex;align-items:center;justify-content:center;flex-shrink:0">Draft</button>` : ''}
         </div>
       </div>
     </div>
