@@ -987,7 +987,8 @@ const state = {
     greenInstance: '',
     greenToken: '',
     topmate: 'recruiter',
-    recruiterName: 'Recruiter'
+    recruiterName: 'Recruiter',
+    botIgnoreList: 'Padmaja Madhanagopal'
   }
 };
 
@@ -1845,6 +1846,16 @@ function renderWhatsApp() {
             <button class="btn btn-outline btn-sm" onclick="state.botPrompt=''; saveBotSettings(); document.getElementById('bot-prompt-editor').value=''" style="font-size:11px">↺ Use smart defaults</button>
             <button class="btn btn-sm" style="background:#25D366;color:#fff;border:none;cursor:pointer;font-size:11px;border-radius:6px;padding:4px 10px" onclick="previewBotPrompt()">👁 Preview prompt</button>
           </div>
+        </div>
+
+        <div style="margin-bottom:10px">
+          <label style="font-size:11px; font-weight:600; color:var(--text-muted); display:block; margin-bottom:4px">Ignore List — bot will not reply to these contacts</label>
+          <input type="text" id="bot-ignore-list-input"
+            value="${escHtml(state.cfg.botIgnoreList || '')}"
+            placeholder="e.g. Padmaja Madhanagopal, John Doe"
+            oninput="state.cfg.botIgnoreList=this.value; localStorage.setItem('nhrms_cfg', JSON.stringify(state.cfg))"
+            style="width:100%; padding:8px 10px; border:1px solid var(--border); border-radius:8px; font-size:12px; font-family:inherit; outline:none; box-sizing:border-box; color:var(--text)" />
+          <div style="font-size:11px; color:var(--text-muted); margin-top:4px">Comma-separated names. Bot silently skips messages from anyone on this list.</div>
         </div>` : ''}
       </div>
 
@@ -2195,19 +2206,26 @@ async function pollInbox(once = false) {
           if (activeCampaign) {
             campaignBotReply(activeCampaign, chatId, senderName, txt);
           } else if (state.botMode) {
-            // Only auto-reply to candidates who are shortlisted/messaged (in recruiting pipeline)
-            const senderDigits = chatId.replace(/\D/g, '').replace(/@.*$/, '');
-            const isRecruitingCandidate = job().candidates.some(c => {
-              if (!c.phone) return false;
-              const cDigits = c.phone.replace(/\D/g, '');
-              return senderDigits.endsWith(cDigits) || cDigits.endsWith(senderDigits);
-            });
-            if (isRecruitingCandidate) {
-              autoBotReply(chatId, senderName, txt);
+            // Check ignore list — skip auto-reply for blocked contacts
+            const ignoreList = (state.cfg.botIgnoreList || '').split(',').map(s => s.trim().toLowerCase()).filter(Boolean);
+            const isIgnored = ignoreList.some(name => senderName.toLowerCase().includes(name) || name.includes(senderName.toLowerCase()));
+            if (isIgnored) {
+              // Silently skip — no auto-reply, no toast noise
             } else {
-              // Not a known candidate — show notification but don't auto-reply
-              toast(`📩 ${senderName}: ${txt.slice(0,50)}`, 'success');
-              renderInboxSection();
+              // Only auto-reply to candidates who are in the recruiting pipeline
+              const senderDigits = chatId.replace(/\D/g, '').replace(/@.*$/, '');
+              const isRecruitingCandidate = job().candidates.some(c => {
+                if (!c.phone) return false;
+                const cDigits = c.phone.replace(/\D/g, '');
+                return senderDigits.endsWith(cDigits) || cDigits.endsWith(senderDigits);
+              });
+              if (isRecruitingCandidate) {
+                autoBotReply(chatId, senderName, txt);
+              } else {
+                // Not a known candidate — show notification but don't auto-reply
+                toast(`📩 ${senderName}: ${txt.slice(0,50)}`, 'success');
+                renderInboxSection();
+              }
             }
           } else {
             toast(`📩 ${senderName}: ${txt.slice(0,50)}`, 'success');
@@ -3518,7 +3536,7 @@ function openChatWindow() {
       <div style="flex:1; display:flex; flex-direction:column; overflow:hidden">
         <div id="wa-win-thread" style="flex:1; overflow-y:auto; padding:14px; background:#efeae4"></div>
         <div id="wa-win-reply" style="padding:10px 12px; border-top:1px solid #e2e8f0; display:flex; gap:8px; background:#fff; flex-shrink:0">
-          <input id="wa-win-input" type="text" placeholder="Type a message…"
+          <input id="wa-win-input" type="text" placeholder="Type a message… (or /ignore to block bot replies)"
             style="flex:1; padding:8px 12px; border:1px solid #e2e8f0; border-radius:20px; font-size:13px; outline:none; font-family:inherit"
             onkeydown="if(event.key==='Enter') chatWinSend()" />
           <button onclick="chatWinSend()" style="background:#25D366;border:none;border-radius:50%;width:38px;height:38px;color:#fff;font-size:16px;cursor:pointer;display:flex;align-items:center;justify-content:center;flex-shrink:0">➤</button>
@@ -3620,6 +3638,26 @@ async function chatWinSend() {
   const txt = inp?.value?.trim();
   if (!txt || !_chatActiveChatId) return;
   inp.value = '';
+
+  // ── /ignore command — add this contact to the bot ignore list ──
+  if (txt.toLowerCase() === '/ignore') {
+    const convo = job().conversations?.[_chatActiveChatId] || [];
+    const theirName = job().inbox?.find(m => m.from === _chatActiveChatId)?.senderName
+      || convo.find(m => m.role === 'user')?.senderName
+      || _chatActiveChatId.replace('@c.us','');
+    const current = (state.cfg.botIgnoreList || '').split(',').map(s => s.trim()).filter(Boolean);
+    if (!current.some(n => n.toLowerCase() === theirName.toLowerCase())) {
+      current.push(theirName);
+      state.cfg.botIgnoreList = current.join(', ');
+      localStorage.setItem('nhrms_cfg', JSON.stringify(state.cfg));
+      // update input field if visible
+      const ignoreInp = document.getElementById('bot-ignore-list-input');
+      if (ignoreInp) ignoreInp.value = state.cfg.botIgnoreList;
+    }
+    toast(`🚫 ${theirName} added to ignore list — bot will skip their messages`, 'success');
+    return; // don't send anything to the candidate
+  }
+
   // add to thread optimistically
   job().conversations = job().conversations || {};
   job().conversations[_chatActiveChatId] = job().conversations[_chatActiveChatId] || [];
