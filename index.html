@@ -988,7 +988,7 @@ const state = {
     greenToken: '',
     topmate: 'recruiter',
     recruiterName: 'Recruiter',
-    botIgnoreList: 'Padmaja Madhanagopal'
+    botIgnoreList: 'Padmaja Madhanagopal, 919740322778'
   }
 };
 
@@ -2206,9 +2206,14 @@ async function pollInbox(once = false) {
           if (activeCampaign) {
             campaignBotReply(activeCampaign, chatId, senderName, txt);
           } else if (state.botMode) {
-            // Check ignore list — skip auto-reply for blocked contacts
+            // Check ignore list — skip auto-reply for blocked contacts (matches name or phone digits)
             const ignoreList = (state.cfg.botIgnoreList || '').split(',').map(s => s.trim().toLowerCase()).filter(Boolean);
-            const isIgnored = ignoreList.some(name => senderName.toLowerCase().includes(name) || name.includes(senderName.toLowerCase()));
+            const senderPhone = chatId.replace(/\D/g,'').replace(/@.*$/,'');
+            const isIgnored = ignoreList.some(entry => {
+              const entryDigits = entry.replace(/\D/g,'');
+              if (entryDigits.length >= 7) return senderPhone.endsWith(entryDigits) || entryDigits.endsWith(senderPhone);
+              return senderName.toLowerCase().includes(entry) || entry.includes(senderName.toLowerCase());
+            });
             if (isIgnored) {
               // Silently skip — no auto-reply, no toast noise
             } else {
@@ -3645,9 +3650,12 @@ async function chatWinSend() {
     const theirName = job().inbox?.find(m => m.from === _chatActiveChatId)?.senderName
       || convo.find(m => m.role === 'user')?.senderName
       || _chatActiveChatId.replace('@c.us','');
+    // Store phone digits if available, else name
+    const phoneDigits = _chatActiveChatId.replace(/\D/g,'').replace(/@.*$/,'');
+    const entryToStore = phoneDigits.length >= 7 ? phoneDigits : theirName;
     const current = (state.cfg.botIgnoreList || '').split(',').map(s => s.trim()).filter(Boolean);
-    if (!current.some(n => n.toLowerCase() === theirName.toLowerCase())) {
-      current.push(theirName);
+    if (!current.some(n => n.replace(/\D/g,'') === entryToStore || n.toLowerCase() === entryToStore.toLowerCase())) {
+      current.push(entryToStore);
       state.cfg.botIgnoreList = current.join(', ');
       localStorage.setItem('nhrms_cfg', JSON.stringify(state.cfg));
       const ignoreInp = document.getElementById('bot-ignore-list-input');
