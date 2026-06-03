@@ -384,6 +384,29 @@
   .monitor-empty { grid-column: 1/-1; text-align:center; padding: 40px 20px; color: var(--text-muted); font-size: 13px; }
   .wa-dot { width:8px; height:8px; border-radius:50%; background:#25D366; flex-shrink:0; }
 
+  /* ── COPILOT ── */
+  @keyframes copilotIn { from { opacity:0; transform:translateY(-16px) scale(.98); } to { opacity:1; transform:none; } }
+  #copilot-overlay { display:none; }
+  #copilot-overlay.show { display:flex !important; }
+  .copilot-chip {
+    display:inline-flex; align-items:center; gap:5px;
+    background:#f5f5f7; border:1.5px solid var(--border); border-radius:20px;
+    padding:5px 12px; font-size:12px; font-weight:500; color:var(--text);
+    cursor:pointer; transition:all .12s;
+  }
+  .copilot-chip:hover { border-color:var(--primary); background:var(--primary-light); color:var(--primary); }
+  .copilot-chip .chip-tag {
+    font-size:10px; font-weight:700; padding:1px 5px; border-radius:4px; margin-right:2px;
+  }
+  .copilot-chip .chip-tag.rec { background:#eff6ff; color:#1d4ed8; }
+  .copilot-chip .chip-tag.mkt { background:#fdf4ff; color:#7c3aed; }
+  .copilot-response-text { font-size:13.5px; color:var(--text); line-height:1.75; white-space:pre-wrap; }
+  .copilot-thinking { display:flex; align-items:center; gap:8px; font-size:13px; color:var(--text-muted); padding:4px 0; }
+  .copilot-thinking span { animation:copilotDot 1.4s ease-in-out infinite; }
+  .copilot-thinking span:nth-child(2) { animation-delay:.2s; }
+  .copilot-thinking span:nth-child(3) { animation-delay:.4s; }
+  @keyframes copilotDot { 0%,80%,100% { opacity:.2; } 40% { opacity:1; } }
+
   /* ── SETUP VIEW ── */
   .setup-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; margin-bottom: 24px; }
   .card {
@@ -798,6 +821,11 @@
       <div id="bot-live-indicator" style="display:none"><span class="bot-live-dot">Bot Live</span></div>
     </div>
     <div class="topbar-actions">
+      <button onclick="openCopilot()" style="display:flex;align-items:center;gap:7px;background:#f5f5f7;border:1.5px solid var(--border);border-radius:10px;padding:7px 14px;font-size:13px;font-weight:600;color:var(--text-muted);cursor:pointer;transition:all .15s" onmouseover="this.style.borderColor='var(--primary)';this.style.color='var(--primary)';this.style.background='var(--primary-light)'" onmouseout="this.style.borderColor='var(--border)';this.style.color='var(--text-muted)';this.style.background='#f5f5f7'">
+        <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.35-4.35"/></svg>
+        Copilot
+        <kbd style="font-size:10px;background:rgba(0,0,0,.06);border-radius:4px;padding:1px 5px;letter-spacing:0">⌘K</kbd>
+      </button>
       <span id="topbar-status" style="font-size:13px; color:var(--text-muted)"></span>
       <button class="btn btn-primary" id="topbar-action-btn" onclick="runAIScreening()" style="display:none">
         Run Screening
@@ -900,6 +928,36 @@
         <button class="btn btn-outline" onclick="document.getElementById('config-modal').classList.remove('show')">Cancel</button>
       </div>
     </div>
+  </div>
+</div>
+
+<!-- SCOUTX COPILOT -->
+<div id="copilot-overlay" onclick="if(event.target===this)closeCopilot()" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,.35);z-index:600;backdrop-filter:blur(4px);align-items:flex-start;justify-content:center;padding-top:80px">
+  <div id="copilot-panel" style="width:640px;max-width:calc(100vw - 40px);background:#fff;border-radius:18px;box-shadow:0 24px 80px rgba(0,0,0,.18),0 0 0 1px rgba(0,0,0,.06);overflow:hidden;animation:copilotIn .2s cubic-bezier(.16,1,.3,1)">
+
+    <!-- Input bar -->
+    <div style="display:flex;align-items:center;gap:10px;padding:16px 20px;border-bottom:1px solid #f0f0f0">
+      <div style="width:30px;height:30px;border-radius:8px;background:var(--primary);display:flex;align-items:center;justify-content:center;flex-shrink:0">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.35-4.35"/></svg>
+      </div>
+      <input id="copilot-input" type="text" placeholder="Ask anything about recruiting or marketing…"
+        style="flex:1;border:none;outline:none;font-size:15px;font-family:inherit;color:var(--text);background:transparent"
+        onkeydown="if(event.key==='Enter')runCopilot();if(event.key==='Escape')closeCopilot()" />
+      <kbd style="font-size:11px;color:var(--text-muted);background:#f5f5f7;border:1px solid var(--border);border-radius:5px;padding:2px 6px">ESC</kbd>
+    </div>
+
+    <!-- Suggested prompts -->
+    <div id="copilot-suggestions" style="padding:16px 20px">
+      <div style="font-size:10.5px;font-weight:700;color:var(--text-muted);text-transform:uppercase;letter-spacing:.08em;margin-bottom:10px">Suggestions</div>
+      <div style="display:flex;flex-wrap:wrap;gap:7px" id="copilot-chips"></div>
+    </div>
+
+    <!-- Response area -->
+    <div id="copilot-response" style="display:none;border-top:1px solid #f0f0f0;max-height:360px;overflow-y:auto">
+      <div style="padding:20px" id="copilot-response-body"></div>
+      <div id="copilot-actions" style="padding:0 20px 16px;display:flex;gap:8px;flex-wrap:wrap"></div>
+    </div>
+
   </div>
 </div>
 
@@ -1302,6 +1360,129 @@ function updateBotLiveIndicator() {
   const ind = document.getElementById('bot-live-indicator');
   if (ind) ind.style.display = state.botMode ? '' : 'none';
 }
+
+// ─────────────────────────────────────────────
+//  SCOUTX COPILOT
+// ─────────────────────────────────────────────
+const COPILOT_PROMPTS = [
+  { tag:'rec', label:'Summarise shortlisted candidates' },
+  { tag:'rec', label:'Write a LinkedIn post for this role' },
+  { tag:'rec', label:'Draft a rejection email' },
+  { tag:'rec', label:'What questions should I ask in the interview?' },
+  { tag:'rec', label:'Score gaps in current candidate pool' },
+  { tag:'rec', label:'Suggest sourcing strategies for this role' },
+  { tag:'mkt', label:'Write a WhatsApp campaign message' },
+  { tag:'mkt', label:'Draft an email for marketing outreach' },
+  { tag:'mkt', label:'Create a recruiter pitch for this position' },
+  { tag:'mkt', label:'Suggest subject lines for outreach emails' },
+];
+
+function openCopilot() {
+  const overlay = document.getElementById('copilot-overlay');
+  overlay.classList.add('show');
+  // Render chips
+  const chips = document.getElementById('copilot-chips');
+  chips.innerHTML = COPILOT_PROMPTS.map(p => `
+    <span class="copilot-chip" onclick="setCopilotPrompt(${JSON.stringify(p.label).replace(/"/g,'&quot;')})">
+      <span class="chip-tag ${p.tag}">${p.tag === 'rec' ? 'Recruit' : 'Mktg'}</span>
+      ${escHtml(p.label)}
+    </span>`).join('');
+  // Reset response
+  document.getElementById('copilot-response').style.display = 'none';
+  document.getElementById('copilot-suggestions').style.display = '';
+  setTimeout(() => document.getElementById('copilot-input')?.focus(), 50);
+}
+
+function closeCopilot() {
+  document.getElementById('copilot-overlay').classList.remove('show');
+  document.getElementById('copilot-input').value = '';
+}
+
+function setCopilotPrompt(text) {
+  document.getElementById('copilot-input').value = text;
+  document.getElementById('copilot-input').focus();
+  runCopilot();
+}
+
+async function runCopilot() {
+  const input = document.getElementById('copilot-input');
+  const query = input?.value?.trim();
+  if (!query) return;
+  if (!state.cfg.claudeKey) { toast('Add Claude API key in Settings first', 'error'); closeCopilot(); return; }
+
+  // Show thinking state
+  document.getElementById('copilot-suggestions').style.display = 'none';
+  const resp = document.getElementById('copilot-response');
+  const body = document.getElementById('copilot-response-body');
+  const actions = document.getElementById('copilot-actions');
+  resp.style.display = '';
+  body.innerHTML = `<div class="copilot-thinking"><span>●</span><span>●</span><span>●</span><span style="margin-left:4px;font-size:13px;color:var(--text-muted)">Thinking…</span></div>`;
+  actions.innerHTML = '';
+
+  // Build rich context
+  const j = job();
+  const candidateSummary = j.candidates.length
+    ? j.candidates.slice(0, 30).map(c =>
+        `${c.name} | ${c.role} | ${c.experience}yrs | Skills: ${c.skills} | Score: ${c.score ?? 'unscreened'} | Status: ${c.status}`
+      ).join('\n')
+    : 'No candidates loaded yet.';
+  const jdText = state.jdPdf?.loaded ? state.jdPdf.text.slice(0,1200) : (j.jd?.slice(0,1200) || 'No JD loaded.');
+  const shortlisted = j.candidates.filter(c => c.status === 'shortlisted' || c.status === 'messaged').length;
+
+  const systemPrompt = `You are ScoutX Copilot, an expert recruiting and marketing assistant built into ScoutX by nHRMS.
+
+CURRENT CONTEXT:
+- Active Position: ${j.title || 'Not set'}
+- Total Candidates: ${j.candidates.length} (${shortlisted} shortlisted)
+- Recruiter: ${state.cfg.recruiterName || 'Recruiter'}
+- Topmate: https://topmate.io/${state.cfg.topmate || 'recruiter'}
+
+JOB DESCRIPTION:
+${jdText}
+
+CANDIDATE POOL:
+${candidateSummary}
+
+INSTRUCTIONS:
+- Give direct, actionable responses. No filler.
+- For drafted content (emails, posts, messages), format it clearly and make it ready to use.
+- For analysis, be specific — use names/numbers from the context above.
+- Keep responses concise but complete.`;
+
+  try {
+    const result = await callClaude([{ role: 'user', content: query }], systemPrompt, 1200);
+    body.innerHTML = `
+      <div style="font-size:11px;font-weight:600;color:var(--text-muted);text-transform:uppercase;letter-spacing:.08em;margin-bottom:10px">
+        ${escHtml(query)}
+      </div>
+      <div class="copilot-response-text">${escHtml(result)}</div>`;
+    actions.innerHTML = `
+      <button class="btn btn-outline btn-sm" onclick="copilotCopy()" style="font-size:12px">Copy response</button>
+      <button class="btn btn-outline btn-sm" onclick="document.getElementById('copilot-response').style.display='none'; document.getElementById('copilot-suggestions').style.display=''; document.getElementById('copilot-input').value=''; document.getElementById('copilot-input').focus()" style="font-size:12px">Ask another</button>
+      <button class="btn btn-outline btn-sm" onclick="closeCopilot()" style="font-size:12px">Close</button>`;
+    // store last response for copy
+    window._lastCopilotResponse = result;
+  } catch(e) {
+    body.innerHTML = `<div style="color:var(--danger);font-size:13px">Error: ${escHtml(e.message)}</div>`;
+    actions.innerHTML = `<button class="btn btn-outline btn-sm" onclick="runCopilot()">Retry</button>`;
+  }
+}
+
+function copilotCopy() {
+  if (window._lastCopilotResponse) {
+    navigator.clipboard.writeText(window._lastCopilotResponse);
+    toast('Copied to clipboard', 'success');
+  }
+}
+
+// Cmd+K / Ctrl+K shortcut
+document.addEventListener('keydown', e => {
+  if ((e.metaKey || e.ctrlKey) && e.key === 'k') {
+    e.preventDefault();
+    const overlay = document.getElementById('copilot-overlay');
+    overlay.classList.contains('show') ? closeCopilot() : openCopilot();
+  }
+});
 
 document.querySelectorAll('.nav-item').forEach(el => {
   el.addEventListener('click', () => navigate(el.dataset.view));
