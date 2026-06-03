@@ -3536,7 +3536,7 @@ function openChatWindow() {
       <div style="flex:1; display:flex; flex-direction:column; overflow:hidden">
         <div id="wa-win-thread" style="flex:1; overflow-y:auto; padding:14px; background:#efeae4"></div>
         <div id="wa-win-reply" style="padding:10px 12px; border-top:1px solid #e2e8f0; display:flex; gap:8px; background:#fff; flex-shrink:0">
-          <input id="wa-win-input" type="text" placeholder="Type a message… (or /ignore to block bot replies)"
+          <input id="wa-win-input" type="text" placeholder="Type a message… (/ignore or /unignore)"
             style="flex:1; padding:8px 12px; border:1px solid #e2e8f0; border-radius:20px; font-size:13px; outline:none; font-family:inherit"
             onkeydown="if(event.key==='Enter') chatWinSend()" />
           <button onclick="chatWinSend()" style="background:#25D366;border:none;border-radius:50%;width:38px;height:38px;color:#fff;font-size:16px;cursor:pointer;display:flex;align-items:center;justify-content:center;flex-shrink:0">➤</button>
@@ -3650,12 +3650,27 @@ async function chatWinSend() {
       current.push(theirName);
       state.cfg.botIgnoreList = current.join(', ');
       localStorage.setItem('nhrms_cfg', JSON.stringify(state.cfg));
-      // update input field if visible
       const ignoreInp = document.getElementById('bot-ignore-list-input');
       if (ignoreInp) ignoreInp.value = state.cfg.botIgnoreList;
     }
     toast(`🚫 ${theirName} added to ignore list — bot will skip their messages`, 'success');
-    return; // don't send anything to the candidate
+    return;
+  }
+
+  // ── /unignore command — remove this contact from the bot ignore list ──
+  if (txt.toLowerCase() === '/unignore') {
+    const convo = job().conversations?.[_chatActiveChatId] || [];
+    const theirName = job().inbox?.find(m => m.from === _chatActiveChatId)?.senderName
+      || convo.find(m => m.role === 'user')?.senderName
+      || _chatActiveChatId.replace('@c.us','');
+    const current = (state.cfg.botIgnoreList || '').split(',').map(s => s.trim()).filter(Boolean);
+    const updated = current.filter(n => n.toLowerCase() !== theirName.toLowerCase());
+    state.cfg.botIgnoreList = updated.join(', ');
+    localStorage.setItem('nhrms_cfg', JSON.stringify(state.cfg));
+    const ignoreInp = document.getElementById('bot-ignore-list-input');
+    if (ignoreInp) ignoreInp.value = state.cfg.botIgnoreList;
+    toast(`✅ ${theirName} removed from ignore list — bot will reply again`, 'success');
+    return;
   }
 
   // add to thread optimistically
