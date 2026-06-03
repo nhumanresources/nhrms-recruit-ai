@@ -187,15 +187,67 @@
   .settings-btn:hover { color: var(--text); background: var(--sidebar-hover); }
   .settings-btn svg { width: 18px; height: 18px; flex-shrink: 0; }
 
+  /* ── SIDEBAR ACTIVE ACCENT ── */
+  .nav-item.active {
+    background: var(--sidebar-active);
+    color: var(--primary);
+    font-weight: 600;
+    box-shadow: inset 3px 0 0 var(--primary);
+    border-radius: 0 8px 8px 0;
+    margin-left: -10px;
+    padding-left: 20px;
+  }
+  .nav-item { transition: all .15s; }
+  .nav-item:hover:not(.active) { background: var(--sidebar-hover); color: var(--text); transform: translateX(2px); }
+
+  /* ── SIDEBAR COLLAPSE ── */
+  #sidebar { transition: width .2s cubic-bezier(.4,0,.2,1); }
+  #sidebar.collapsed { width: 60px; min-width: 60px; }
+  #sidebar.collapsed .logo-text,
+  #sidebar.collapsed .logo-sub,
+  #sidebar.collapsed .nav-item span:not(.nav-icon),
+  #sidebar.collapsed .nav-badge,
+  #sidebar.collapsed .settings-btn span,
+  #sidebar.collapsed #job-switcher { display: none; }
+  #sidebar.collapsed .nav-item { justify-content: center; padding: 8px; margin-left: 0; }
+  #sidebar.collapsed .nav-item.active { box-shadow: none; padding-left: 8px; }
+  #sidebar.collapsed .logo { justify-content: center; padding: 0 0 20px; }
+  #sidebar.collapsed .settings-btn { justify-content: center; padding: 8px; }
+  #collapse-btn { cursor: pointer; opacity: .5; transition: opacity .15s; padding: 2px; }
+  #collapse-btn:hover { opacity: 1; }
+
+  /* ── BOT LIVE INDICATOR ── */
+  .bot-live-dot {
+    display: inline-flex; align-items: center; gap: 5px;
+    background: #f0fdf4; border: 1px solid #86efac;
+    border-radius: 20px; padding: 3px 9px; font-size: 11px;
+    font-weight: 600; color: #166534;
+  }
+  .bot-live-dot::before {
+    content: ''; width: 6px; height: 6px; border-radius: 50%;
+    background: #22c55e;
+    animation: botPulse 1.5s ease-in-out infinite;
+  }
+  @keyframes botPulse {
+    0%, 100% { opacity: 1; transform: scale(1); }
+    50% { opacity: .5; transform: scale(.8); }
+  }
+
   /* ── MAIN ── */
   #main { flex: 1; display: flex; flex-direction: column; overflow: hidden; }
   .topbar {
-    background: rgba(255,255,255,.85); border-bottom: 1px solid var(--border);
+    background: rgba(255,255,255,.92); border-bottom: 1px solid var(--border);
     padding: 0 28px; height: 56px; display: flex; align-items: center;
     justify-content: space-between; gap: 16px;
-    backdrop-filter: blur(12px); -webkit-backdrop-filter: blur(12px);
+    backdrop-filter: blur(16px); -webkit-backdrop-filter: blur(16px);
   }
-  .page-title { font-size: 16px; font-weight: 600; color: var(--text); letter-spacing: -.02em; }
+  .topbar-left { display: flex; align-items: center; gap: 14px; }
+  .page-title { font-size: 15px; font-weight: 700; color: var(--text); letter-spacing: -.02em; }
+  .topbar-job-pill {
+    font-size: 11px; color: var(--text-muted); background: var(--bg);
+    border: 1px solid var(--border); border-radius: 20px; padding: 2px 9px;
+    font-weight: 500; max-width: 160px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+  }
   .topbar-actions { display: flex; align-items: center; gap: 12px; }
   .btn {
     display: inline-flex; align-items: center; gap: 7px;
@@ -217,6 +269,74 @@
   .btn-danger:hover { background: #dc2626; }
 
   .content { flex: 1; overflow-y: auto; padding: 28px 32px; }
+  .content.page-enter { animation: pageEnter .22s cubic-bezier(.16,1,.3,1); }
+  @keyframes pageEnter { from { opacity:0; transform: translateY(10px); } to { opacity:1; transform:none; } }
+
+  /* ── PROGRESS CHECKLIST ── */
+  .progress-checklist {
+    display: flex; gap: 12px; margin-bottom: 24px; flex-wrap: wrap;
+  }
+  .progress-item {
+    display: flex; align-items: center; gap: 8px;
+    background: #fff; border: 1.5px solid var(--border); border-radius: 10px;
+    padding: 10px 14px; font-size: 12.5px; font-weight: 500; flex: 1; min-width: 160px;
+    transition: all .2s;
+  }
+  .progress-item.done { border-color: #86efac; background: #f0fdf4; color: #166534; }
+  .progress-item.done .pi-icon { background: #22c55e; color: #fff; }
+  .progress-item .pi-icon {
+    width: 22px; height: 22px; border-radius: 50%; background: var(--border);
+    display: flex; align-items: center; justify-content: center;
+    font-size: 11px; font-weight: 800; flex-shrink: 0; color: var(--text-muted);
+  }
+
+  /* ── CANDIDATE AVATAR ── */
+  .cand-avatar {
+    width: 34px; height: 34px; border-radius: 50%; flex-shrink: 0;
+    display: flex; align-items: center; justify-content: center;
+    font-size: 13px; font-weight: 700; color: #fff;
+  }
+
+  /* ── PROFILE DRAWER ── */
+  #profile-drawer {
+    position: fixed; top: 0; right: -420px; width: 400px; height: 100vh;
+    background: #fff; border-left: 1px solid var(--border);
+    box-shadow: -8px 0 32px rgba(0,0,0,.08);
+    z-index: 500; display: flex; flex-direction: column;
+    transition: right .28s cubic-bezier(.16,1,.3,1);
+    overflow: hidden;
+  }
+  #profile-drawer.open { right: 0; }
+  #drawer-backdrop {
+    position: fixed; inset: 0; background: rgba(0,0,0,.12);
+    z-index: 499; display: none; backdrop-filter: blur(2px);
+  }
+  #drawer-backdrop.show { display: block; }
+  .drawer-header {
+    padding: 20px 20px 16px; border-bottom: 1px solid var(--border);
+    display: flex; align-items: center; gap: 12px;
+  }
+  .drawer-body { flex: 1; overflow-y: auto; padding: 20px; }
+  .drawer-section { margin-bottom: 20px; }
+  .drawer-section-title {
+    font-size: 10.5px; font-weight: 700; text-transform: uppercase;
+    letter-spacing: .08em; color: var(--text-muted); margin-bottom: 8px;
+  }
+  .drawer-close {
+    margin-left: auto; width: 30px; height: 30px; border-radius: 50%;
+    background: var(--bg); border: none; cursor: pointer; font-size: 16px;
+    display: flex; align-items: center; justify-content: center; color: var(--text-muted);
+    flex-shrink: 0; transition: background .15s;
+  }
+  .drawer-close:hover { background: var(--border); color: var(--text); }
+  .score-ring {
+    width: 56px; height: 56px; border-radius: 50%;
+    display: flex; align-items: center; justify-content: center;
+    font-size: 15px; font-weight: 800; flex-shrink: 0;
+    border: 3px solid;
+  }
+  tr.cand-row { cursor: pointer; transition: background .12s; }
+  tr.cand-row:hover { background: #f8faff; }
 
   /* ── SETUP VIEW ── */
   .setup-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; margin-bottom: 24px; }
@@ -565,9 +685,12 @@
 <nav id="sidebar">
   <div class="logo">
     <div class="logo-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"/><circle cx="12" cy="12" r="7"/><circle cx="12" cy="12" r="11"/></svg></div>
-    <div>
+    <div style="flex:1">
       <div class="logo-text">ScoutX</div>
       <div class="logo-sub">by nHRMS</div>
+    </div>
+    <div id="collapse-btn" onclick="toggleSidebar()" title="Collapse sidebar">
+      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M15 18l-6-6 6-6"/></svg>
     </div>
   </div>
 
@@ -620,7 +743,11 @@
 <!-- MAIN -->
 <div id="main">
   <div class="topbar">
-    <div id="page-title" class="page-title">Setup</div>
+    <div class="topbar-left">
+      <div id="page-title" class="page-title">Setup</div>
+      <div id="topbar-job-pill" class="topbar-job-pill" style="display:none"></div>
+      <div id="bot-live-indicator" style="display:none"><span class="bot-live-dot">Bot Live</span></div>
+    </div>
     <div class="topbar-actions">
       <span id="topbar-status" style="font-size:13px; color:var(--text-muted)"></span>
       <button class="btn btn-primary" id="topbar-action-btn" onclick="runAIScreening()" style="display:none">
@@ -645,6 +772,13 @@
   <div class="content" id="content">
     <!-- content injected by JS -->
   </div>
+</div>
+
+<!-- PROFILE DRAWER -->
+<div id="drawer-backdrop" onclick="closeDrawer()"></div>
+<div id="profile-drawer">
+  <div class="drawer-header" id="drawer-header"></div>
+  <div class="drawer-body" id="drawer-body"></div>
 </div>
 
 <!-- CONFIG MODAL -->
@@ -1089,7 +1223,20 @@ function navigate(view) {
   document.getElementById('page-title').textContent = pageTitles[view] || view;
   const btn = document.getElementById('topbar-action-btn');
   btn.style.display = (view === 'candidates' && job().candidates.length > 0) ? '' : 'none';
+  // Job pill in topbar
+  const pill = document.getElementById('topbar-job-pill');
+  if (pill && job()?.title) { pill.textContent = job().title; pill.style.display = ''; }
+  // Bot live indicator
+  updateBotLiveIndicator();
   views[view]?.();
+  // Page enter animation
+  const content = document.getElementById('content');
+  if (content) { content.classList.remove('page-enter'); void content.offsetWidth; content.classList.add('page-enter'); }
+}
+
+function updateBotLiveIndicator() {
+  const ind = document.getElementById('bot-live-indicator');
+  if (ind) ind.style.display = state.botMode ? '' : 'none';
 }
 
 document.querySelectorAll('.nav-item').forEach(el => {
@@ -1101,7 +1248,25 @@ document.querySelectorAll('.nav-item').forEach(el => {
 // ─────────────────────────────────────────────
 function renderSetup() {
   const content = document.getElementById('content');
+  const hasJD = !!(job().jd?.trim().length > 30 || state.jdPdf?.loaded);
+  const hasCandidates = job().candidates.length > 0;
+  const hasWhatsApp = !!(state.cfg.greenInstance && state.cfg.greenToken);
+  const hasScreened = job().candidates.some(c => c.score !== null);
   content.innerHTML = `
+  <div class="progress-checklist">
+    <div class="progress-item ${hasJD ? 'done' : ''}">
+      <div class="pi-icon">${hasJD ? '✓' : '1'}</div> Job Description
+    </div>
+    <div class="progress-item ${hasCandidates ? 'done' : ''}">
+      <div class="pi-icon">${hasCandidates ? '✓' : '2'}</div> Candidates CSV
+    </div>
+    <div class="progress-item ${hasWhatsApp ? 'done' : ''}">
+      <div class="pi-icon">${hasWhatsApp ? '✓' : '3'}</div> WhatsApp Connected
+    </div>
+    <div class="progress-item ${hasScreened ? 'done' : ''}">
+      <div class="pi-icon">${hasScreened ? '✓' : '4'}</div> Screening Run
+    </div>
+  </div>
   <div class="setup-grid">
     <div class="card">
       <div class="card-header">
@@ -1315,6 +1480,12 @@ function filterCandidates() {
   tbody.innerHTML = filtered.map(c => candidateRow(c)).join('');
 }
 
+function candidateAvatarColor(name) {
+  const colors = ['#0071e3','#34c759','#ff9500','#ff3b30','#af52de','#5ac8fa','#007aff','#30d158'];
+  let h = 0; for (let i = 0; i < name.length; i++) h = (h * 31 + name.charCodeAt(i)) & 0xffffffff;
+  return colors[Math.abs(h) % colors.length];
+}
+
 function candidateRow(c) {
   const score = c.score;
   let scoreFillClass = 'mid';
@@ -1322,11 +1493,18 @@ function candidateRow(c) {
   else if (score < 50) scoreFillClass = 'low';
   const statusMap = { new: 'badge-new', shortlisted: 'badge-shortlisted', rejected: 'badge-rejected', messaged: 'badge-messaged' };
   const statusLabel = { new: '● New', shortlisted: '✓ Shortlisted', rejected: '✗ Rejected', messaged: '💬 Messaged' };
+  const initials = (c.name || '?').split(' ').map(w=>w[0]).join('').slice(0,2).toUpperCase();
+  const avatarColor = candidateAvatarColor(c.name || '');
   return `
-  <tr>
+  <tr class="cand-row" onclick="openCandidateDrawer(${c.id})">
     <td>
-      <div class="candidate-name">${escHtml(c.name)}</div>
-      <div class="candidate-role">${escHtml(c.location || '')}</div>
+      <div style="display:flex; align-items:center; gap:10px">
+        <div class="cand-avatar" style="background:${avatarColor}">${initials}</div>
+        <div>
+          <div class="candidate-name">${escHtml(c.name)}</div>
+          <div class="candidate-role">${escHtml(c.location || '')}</div>
+        </div>
+      </div>
     </td>
     <td>
       <div style="font-size:12.5px">${escHtml(c.phone || '—')}</div>
@@ -1361,7 +1539,114 @@ function candidateRow(c) {
 
 function setStatus(id, status) {
   const c = job().candidates.find(x => x.id === id);
-  if (c) { c.status = status; updateBadges(); filterCandidates(); }
+  if (c) { c.status = status; saveJobs(); updateBadges(); filterCandidates(); refreshDrawer(id); }
+}
+
+// ── Sidebar collapse ──
+function toggleSidebar() {
+  const sb = document.getElementById('sidebar');
+  const collapsed = sb.classList.toggle('collapsed');
+  const btn = document.getElementById('collapse-btn');
+  if (btn) btn.style.transform = collapsed ? 'rotate(180deg)' : '';
+}
+
+// ── Candidate Profile Drawer ──
+function openCandidateDrawer(id) {
+  const c = job().candidates.find(x => x.id === id);
+  if (!c) return;
+  renderDrawerContent(c);
+  document.getElementById('profile-drawer').classList.add('open');
+  document.getElementById('drawer-backdrop').classList.add('show');
+}
+
+function closeDrawer() {
+  document.getElementById('profile-drawer').classList.remove('open');
+  document.getElementById('drawer-backdrop').classList.remove('show');
+}
+
+function refreshDrawer(id) {
+  if (!document.getElementById('profile-drawer').classList.contains('open')) return;
+  const c = job().candidates.find(x => x.id === id);
+  if (c) renderDrawerContent(c);
+}
+
+function renderDrawerContent(c) {
+  const score = c.score;
+  const avatarColor = candidateAvatarColor(c.name || '');
+  const initials = (c.name || '?').split(' ').map(w=>w[0]).join('').slice(0,2).toUpperCase();
+  const scoreColor = score === null ? '#6e6e73' : score >= 75 ? '#34c759' : score >= 50 ? '#ff9500' : '#ff3b30';
+  const statusMap = { new: 'badge-new', shortlisted: 'badge-shortlisted', rejected: 'badge-rejected', messaged: 'badge-messaged' };
+  const statusLabel = { new: '● New', shortlisted: '✓ Shortlisted', rejected: '✗ Rejected', messaged: '💬 Messaged' };
+  const skills = (c.skills || '').split(/[,;|]/).filter(s => s.trim());
+  const thread = (job().conversations?.[`${(c.phone||'').replace(/\D/g,'')}@c.us`] || []).slice(-6);
+
+  document.getElementById('drawer-header').innerHTML = `
+    <div class="cand-avatar" style="background:${avatarColor}; width:44px; height:44px; font-size:16px">${initials}</div>
+    <div style="flex:1; min-width:0">
+      <div style="font-size:15px; font-weight:700; letter-spacing:-.01em">${escHtml(c.name)}</div>
+      <div style="font-size:12px; color:var(--text-muted); margin-top:2px">${escHtml(c.role || '')} ${c.experience ? '· ' + c.experience + ' yrs' : ''}</div>
+    </div>
+    ${score !== null ? `<div class="score-ring" style="color:${scoreColor}; border-color:${scoreColor}">${score}</div>` : ''}
+    <button class="drawer-close" onclick="closeDrawer()">×</button>
+  `;
+
+  document.getElementById('drawer-body').innerHTML = `
+    <div class="drawer-section">
+      <div class="drawer-section-title">Status</div>
+      <div style="display:flex; gap:8px; align-items:center; flex-wrap:wrap">
+        <span class="badge ${statusMap[c.status] || 'badge-pending'}">${statusLabel[c.status] || c.status}</span>
+        <button class="btn btn-sm" style="background:var(--success-light);color:#166534;border:1.5px solid #bbf7d0" onclick="setStatus(${c.id},'shortlisted')">✓ Shortlist</button>
+        <button class="btn btn-sm" style="background:#f1f5f9;color:var(--text-muted);border:1.5px solid var(--border)" onclick="setStatus(${c.id},'rejected')">✗ Reject</button>
+      </div>
+    </div>
+
+    <div class="drawer-section">
+      <div class="drawer-section-title">Contact</div>
+      <div style="display:flex; flex-direction:column; gap:6px; font-size:13px">
+        ${c.phone ? `<div style="display:flex;align-items:center;gap:8px"><span style="color:var(--text-muted);min-width:52px">Phone</span><strong>${escHtml(c.phone)}</strong></div>` : ''}
+        ${c.email ? `<div style="display:flex;align-items:center;gap:8px"><span style="color:var(--text-muted);min-width:52px">Email</span><strong>${escHtml(c.email)}</strong></div>` : ''}
+        ${c.location ? `<div style="display:flex;align-items:center;gap:8px"><span style="color:var(--text-muted);min-width:52px">Location</span><strong>${escHtml(c.location)}</strong></div>` : ''}
+      </div>
+    </div>
+
+    ${skills.length ? `
+    <div class="drawer-section">
+      <div class="drawer-section-title">Skills</div>
+      <div style="display:flex; flex-wrap:wrap; gap:6px">
+        ${skills.map(s => `<span class="tag" style="background:var(--primary-light);color:var(--primary-dark);border:1px solid rgba(0,113,227,.15)">${escHtml(s.trim())}</span>`).join('')}
+      </div>
+    </div>` : ''}
+
+    ${score !== null ? `
+    <div class="drawer-section">
+      <div class="drawer-section-title">Match Score</div>
+      <div style="display:flex; align-items:center; gap:10px; margin-bottom:6px">
+        <div class="score-bar" style="flex:1; height:8px"><div class="score-fill ${score>=75?'high':score>=50?'mid':'low'}" style="width:${score}%; height:8px"></div></div>
+        <span style="font-size:15px; font-weight:800; color:${scoreColor}">${score}%</span>
+      </div>
+      ${c.scoreReason ? `<div style="font-size:12px; color:var(--text-muted); line-height:1.6">${escHtml(c.scoreReason)}</div>` : ''}
+    </div>` : ''}
+
+    ${thread.length ? `
+    <div class="drawer-section">
+      <div class="drawer-section-title">WhatsApp Thread</div>
+      <div style="display:flex; flex-direction:column; gap:6px">
+        ${thread.map(t => `
+          <div style="display:flex; justify-content:${t.role==='assistant'?'flex-end':'flex-start'}">
+            <div style="max-width:85%; padding:8px 11px; border-radius:${t.role==='assistant'?'12px 12px 2px 12px':'12px 12px 12px 2px'}; background:${t.role==='assistant'?'#25D366':'#f1f5f9'}; color:${t.role==='assistant'?'#fff':'var(--text)'}; font-size:12px; line-height:1.5; white-space:pre-wrap">${escHtml(t.content)}</div>
+          </div>`).join('')}
+      </div>
+    </div>` : ''}
+
+    ${c.phone ? `
+    <div class="drawer-section">
+      <div class="drawer-section-title">Actions</div>
+      <div style="display:flex; gap:8px; flex-wrap:wrap">
+        <button class="btn btn-wa btn-sm" onclick="sendProactiveOutreach(${c.id}); closeDrawer()">Send Outreach</button>
+        <button class="btn btn-outline btn-sm" onclick="closeDrawer(); navigate('whatsapp')">Open WhatsApp</button>
+      </div>
+    </div>` : ''}
+  `;
 }
 
 // ─────────────────────────────────────────────
@@ -2900,8 +3185,9 @@ function toggleBotMode(val) {
   state.botMode = val;
   saveBotSettings();
   renderWhatsApp();
+  updateBotLiveIndicator();
   if (val && !_botPolling) startInboxPolling();
-  toast(val ? '🤖 Bot mode ON — auto-replying to all HR enquiries' : '🔕 Bot mode OFF — manual replies only');
+  toast(val ? 'Bot mode ON — auto-replying to recruiting candidates' : 'Bot mode OFF — manual replies only');
 }
 
 function renderInboxSection() {
