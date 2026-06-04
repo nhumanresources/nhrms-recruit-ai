@@ -389,19 +389,19 @@
   #copilot-overlay { display:none; }
   #copilot-overlay.show { display:flex !important; }
   .copilot-chip {
-    display:inline-flex; align-items:center; gap:5px;
-    background:#f5f5f7; border:1.5px solid var(--border); border-radius:20px;
-    padding:5px 12px; font-size:12px; font-weight:500; color:var(--text);
-    cursor:pointer; transition:all .12s;
+    display:inline-flex; align-items:center; gap:7px;
+    background:#f5f5f7; border:1.5px solid var(--border); border-radius:22px;
+    padding:8px 16px; font-size:13px; font-weight:500; color:var(--text);
+    cursor:pointer; transition:all .14s;
   }
-  .copilot-chip:hover { border-color:var(--primary); background:var(--primary-light); color:var(--primary); }
+  .copilot-chip:hover { border-color:var(--primary); background:var(--primary-light); color:var(--primary); transform:translateY(-1px); box-shadow:0 3px 10px rgba(0,113,227,.1); }
   .copilot-chip .chip-tag {
-    font-size:10px; font-weight:700; padding:1px 5px; border-radius:4px; margin-right:2px;
+    font-size:10.5px; font-weight:700; padding:2px 7px; border-radius:5px; margin-right:1px;
   }
   .copilot-chip .chip-tag.rec { background:#eff6ff; color:#1d4ed8; }
   .copilot-chip .chip-tag.mkt { background:#fdf4ff; color:#7c3aed; }
-  .copilot-response-text { font-size:13.5px; color:var(--text); line-height:1.75; white-space:pre-wrap; }
-  .copilot-thinking { display:flex; align-items:center; gap:8px; font-size:13px; color:var(--text-muted); padding:4px 0; }
+  .copilot-response-text { font-size:14.5px; color:var(--text); line-height:1.85; white-space:pre-wrap; }
+  .copilot-thinking { display:flex; align-items:center; gap:10px; font-size:14px; color:var(--text-muted); padding:8px 0; }
   .copilot-thinking span { animation:copilotDot 1.4s ease-in-out infinite; }
   .copilot-thinking span:nth-child(2) { animation-delay:.2s; }
   .copilot-thinking span:nth-child(3) { animation-delay:.4s; }
@@ -932,30 +932,37 @@
 </div>
 
 <!-- SCOUTX COPILOT -->
-<div id="copilot-overlay" onclick="if(event.target===this)closeCopilot()" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,.35);z-index:600;backdrop-filter:blur(4px);align-items:flex-start;justify-content:center;padding-top:80px">
-  <div id="copilot-panel" style="width:640px;max-width:calc(100vw - 40px);background:#fff;border-radius:18px;box-shadow:0 24px 80px rgba(0,0,0,.18),0 0 0 1px rgba(0,0,0,.06);overflow:hidden;animation:copilotIn .2s cubic-bezier(.16,1,.3,1)">
+<div id="copilot-overlay" onclick="if(event.target===this)closeCopilot()" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,.4);z-index:600;backdrop-filter:blur(6px);align-items:center;justify-content:center;padding:40px 20px">
+  <div id="copilot-panel" style="width:820px;max-width:calc(100vw - 40px);max-height:calc(100vh - 80px);background:#fff;border-radius:22px;box-shadow:0 32px 100px rgba(0,0,0,.22),0 0 0 1px rgba(0,0,0,.06);overflow:hidden;animation:copilotIn .22s cubic-bezier(.16,1,.3,1);display:flex;flex-direction:column">
 
     <!-- Input bar -->
-    <div style="display:flex;align-items:center;gap:10px;padding:16px 20px;border-bottom:1px solid #f0f0f0">
-      <div style="width:30px;height:30px;border-radius:8px;background:var(--primary);display:flex;align-items:center;justify-content:center;flex-shrink:0">
-        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.35-4.35"/></svg>
+    <div style="display:flex;align-items:center;gap:14px;padding:22px 28px;border-bottom:1.5px solid #f0f0f0;flex-shrink:0">
+      <div style="width:38px;height:38px;border-radius:10px;background:var(--primary);display:flex;align-items:center;justify-content:center;flex-shrink:0;box-shadow:0 4px 12px rgba(0,113,227,.3)">
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.35-4.35"/></svg>
       </div>
       <input id="copilot-input" type="text" placeholder="Ask anything about recruiting or marketing…"
-        style="flex:1;border:none;outline:none;font-size:15px;font-family:inherit;color:var(--text);background:transparent"
+        style="flex:1;border:none;outline:none;font-size:17px;font-family:inherit;color:var(--text);background:transparent;letter-spacing:-.01em"
         onkeydown="if(event.key==='Enter')runCopilot();if(event.key==='Escape')closeCopilot()" />
-      <kbd style="font-size:11px;color:var(--text-muted);background:#f5f5f7;border:1px solid var(--border);border-radius:5px;padding:2px 6px">ESC</kbd>
+      <kbd style="font-size:12px;color:var(--text-muted);background:#f5f5f7;border:1px solid var(--border);border-radius:6px;padding:3px 8px;white-space:nowrap">ESC to close</kbd>
     </div>
 
     <!-- Suggested prompts -->
-    <div id="copilot-suggestions" style="padding:16px 20px">
-      <div style="font-size:10.5px;font-weight:700;color:var(--text-muted);text-transform:uppercase;letter-spacing:.08em;margin-bottom:10px">Suggestions</div>
-      <div style="display:flex;flex-wrap:wrap;gap:7px" id="copilot-chips"></div>
+    <div id="copilot-suggestions" style="padding:24px 28px;overflow-y:auto">
+      <div style="display:flex;gap:24px;margin-bottom:14px">
+        <div style="font-size:11px;font-weight:700;color:#1d4ed8;text-transform:uppercase;letter-spacing:.08em">Recruiting</div>
+        <div style="font-size:11px;font-weight:700;color:#7c3aed;text-transform:uppercase;letter-spacing:.08em">Marketing</div>
+      </div>
+      <div style="display:flex;flex-wrap:wrap;gap:9px" id="copilot-chips"></div>
+      <div style="margin-top:20px;padding-top:16px;border-top:1px solid #f5f5f7;display:flex;align-items:center;gap:8px">
+        <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="var(--text-muted)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><path d="M12 8v4M12 16h.01"/></svg>
+        <span style="font-size:12px;color:var(--text-muted)">Copilot has full context: your active JD, all candidates, scores, and recruiter profile.</span>
+      </div>
     </div>
 
     <!-- Response area -->
-    <div id="copilot-response" style="display:none;border-top:1px solid #f0f0f0;max-height:360px;overflow-y:auto">
-      <div style="padding:20px" id="copilot-response-body"></div>
-      <div id="copilot-actions" style="padding:0 20px 16px;display:flex;gap:8px;flex-wrap:wrap"></div>
+    <div id="copilot-response" style="display:none;border-top:1.5px solid #f0f0f0;flex:1;overflow:hidden;display:none;flex-direction:column">
+      <div style="flex:1;overflow-y:auto;padding:28px 28px 16px" id="copilot-response-body"></div>
+      <div id="copilot-actions" style="padding:0 28px 22px;display:flex;gap:10px;flex-wrap:wrap;flex-shrink:0;border-top:1px solid #f5f5f7;padding-top:16px"></div>
     </div>
 
   </div>
@@ -1415,7 +1422,7 @@ async function runCopilot() {
   const resp = document.getElementById('copilot-response');
   const body = document.getElementById('copilot-response-body');
   const actions = document.getElementById('copilot-actions');
-  resp.style.display = '';
+  resp.style.display = 'flex';
   body.innerHTML = `<div class="copilot-thinking"><span>●</span><span>●</span><span>●</span><span style="margin-left:4px;font-size:13px;color:var(--text-muted)">Thinking…</span></div>`;
   actions.innerHTML = '';
 
@@ -1452,8 +1459,11 @@ INSTRUCTIONS:
   try {
     const result = await callClaude([{ role: 'user', content: query }], systemPrompt, 1200);
     body.innerHTML = `
-      <div style="font-size:11px;font-weight:600;color:var(--text-muted);text-transform:uppercase;letter-spacing:.08em;margin-bottom:10px">
-        ${escHtml(query)}
+      <div style="display:flex;align-items:center;gap:10px;margin-bottom:18px">
+        <div style="width:28px;height:28px;border-radius:50%;background:var(--primary-light);display:flex;align-items:center;justify-content:center;flex-shrink:0">
+          <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="var(--primary)" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.35-4.35"/></svg>
+        </div>
+        <div style="font-size:14px;font-weight:600;color:var(--text)">${escHtml(query)}</div>
       </div>
       <div class="copilot-response-text">${escHtml(result)}</div>`;
     actions.innerHTML = `
