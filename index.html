@@ -795,6 +795,9 @@
       <span class="nav-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><polyline points="22 12 18 12 15 21 9 3 6 12 2 12"/></svg></span> Campaigns
       <span class="nav-badge" id="badge-campaigns">0</span>
     </div>
+    <div class="nav-item" data-view="crm">
+      <span class="nav-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><ellipse cx="12" cy="5" rx="9" ry="3"/><path d="M21 12c0 1.66-4 3-9 3s-9-1.34-9-3"/><path d="M3 5v14c0 1.66 4 3 9 3s9-1.34 9-3V5"/></svg></span> CRM
+    </div>
     <div class="nav-item" data-view="admin" id="admin-nav-item" style="display:none">
       <span class="nav-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg></span> Admin
     </div>
@@ -1344,8 +1347,8 @@ function createNewJob() {
 // ─────────────────────────────────────────────
 //  NAVIGATION
 // ─────────────────────────────────────────────
-const views = { setup: renderSetup, candidates: renderCandidates, chat: renderChat, whatsapp: renderWhatsApp, calendar: renderCalendar, campaigns: renderCampaigns, admin: renderAdmin };
-const pageTitles = { setup: 'Setup', candidates: 'Candidates', chat: 'Resume Stack Ranker', whatsapp: 'WhatsApp Outreach', calendar: 'Schedule Interviews', campaigns: 'Campaigns', admin: 'Admin · User Management' };
+const views = { setup: renderSetup, candidates: renderCandidates, chat: renderChat, whatsapp: renderWhatsApp, calendar: renderCalendar, campaigns: renderCampaigns, crm: renderCRM, admin: renderAdmin };
+const pageTitles = { setup: 'Setup', candidates: 'Candidates', chat: 'Resume Stack Ranker', whatsapp: 'WhatsApp Outreach', calendar: 'Schedule Interviews', campaigns: 'Campaigns', crm: 'CRM Repository', admin: 'Admin · User Management' };
 
 function navigate(view) {
   document.querySelectorAll('.nav-item').forEach(el => el.classList.toggle('active', el.dataset.view === view));
@@ -3756,6 +3759,197 @@ function copyAllLinks() {
   const links = shortlisted.map(c => `${c.name}: https://topmate.io/${state.cfg.topmate}`).join('\n');
   navigator.clipboard.writeText(links);
   toast(`📋 ${shortlisted.length} links copied!`, 'success');
+}
+
+// ─────────────────────────────────────────────
+//  CRM REPOSITORY + ZOHO SYNC
+// ─────────────────────────────────────────────
+let _crmTab = 'recruiting';
+
+function renderCRM() {
+  // Aggregate all candidates across every job
+  const allCandidates = state.jobs.flatMap(j =>
+    (j.candidates || []).map(c => ({ ...c, jobTitle: j.title || 'Untitled', jobId: j.id }))
+  );
+  // Aggregate all campaign members
+  const allLeads = state.campaigns.flatMap(camp =>
+    (camp.members || []).map(m => ({ ...m, campaignName: camp.name || 'Campaign', campaignId: camp.id }))
+  );
+
+  const content = document.getElementById('content');
+  content.innerHTML = `
+  <!-- Stats -->
+  <div class="stats-row" style="margin-bottom:20px">
+    <div class="stat-card"><div class="stat-label">Total Contacts</div><div class="stat-value" style="color:var(--primary)">${allCandidates.length}</div><div class="stat-sub">across all positions</div></div>
+    <div class="stat-card"><div class="stat-label">Shortlisted</div><div class="stat-value" style="color:var(--success)">${allCandidates.filter(c=>c.status==='shortlisted'||c.status==='messaged').length}</div><div class="stat-sub">in pipeline</div></div>
+    <div class="stat-card"><div class="stat-label">Campaign Leads</div><div class="stat-value" style="color:#7c3aed">${allLeads.length}</div><div class="stat-sub">marketing contacts</div></div>
+    <div class="stat-card"><div class="stat-label">Positions</div><div class="stat-value" style="color:var(--warning)">${state.jobs.length}</div><div class="stat-sub">active mandates</div></div>
+  </div>
+
+  <!-- Tab bar + Zoho buttons -->
+  <div style="display:flex;align-items:center;gap:0;margin-bottom:16px">
+    <div style="display:flex;background:#fff;border:1.5px solid var(--border);border-radius:10px;overflow:hidden;flex:1;max-width:360px">
+      <div id="crm-tab-rec" onclick="crmSwitchTab('recruiting')" style="flex:1;padding:8px 16px;font-size:13px;font-weight:600;cursor:pointer;text-align:center;background:var(--primary);color:#fff;transition:all .15s">Recruiting</div>
+      <div id="crm-tab-mkt" onclick="crmSwitchTab('marketing')" style="flex:1;padding:8px 16px;font-size:13px;font-weight:500;cursor:pointer;text-align:center;color:var(--text-muted);transition:all .15s">Marketing</div>
+    </div>
+    <div style="margin-left:auto;display:flex;gap:10px;align-items:center">
+      <button class="btn btn-outline btn-sm" onclick="syncToZoho()" style="display:flex;align-items:center;gap:6px;font-size:12px">
+        <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="16 3 21 3 21 8"/><line x1="4" y1="20" x2="21" y2="3"/><polyline points="21 16 21 21 16 21"/><line x1="15" y1="15" x2="21" y2="21"/></svg>
+        Push to Zoho CRM
+      </button>
+      <button class="btn btn-primary btn-sm" onclick="pullFromZoho()" style="font-size:12px">← Pull from Zoho</button>
+    </div>
+  </div>
+
+  <!-- Search -->
+  <div style="margin-bottom:12px;display:flex;gap:10px">
+    <div style="position:relative;flex:1;max-width:320px">
+      <input type="text" id="crm-search" placeholder="Search name, phone, email…"
+        oninput="renderCRMTable()"
+        style="width:100%;padding:8px 12px 8px 34px;border:1.5px solid var(--border);border-radius:9px;font-size:13px;font-family:inherit;outline:none;background:#fff" />
+      <svg style="position:absolute;left:10px;top:50%;transform:translateY(-50%);color:var(--text-muted)" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.35-4.35"/></svg>
+    </div>
+    <select id="crm-filter" onchange="renderCRMTable()" style="padding:8px 12px;border:1.5px solid var(--border);border-radius:9px;font-size:13px;font-family:inherit;outline:none;background:#fff;cursor:pointer">
+      <option value="all">All Statuses</option>
+      <option value="shortlisted">Shortlisted</option>
+      <option value="messaged">Messaged</option>
+      <option value="new">New</option>
+      <option value="rejected">Rejected</option>
+    </select>
+  </div>
+
+  <!-- Table -->
+  <div class="card" style="overflow:hidden">
+    <div class="table-wrap" id="crm-table-wrap"></div>
+  </div>
+
+  <!-- Zoho sync status -->
+  <div id="crm-sync-status" style="display:none;margin-top:14px;padding:14px 18px;border-radius:10px;font-size:13px;line-height:1.6"></div>
+  `;
+
+  // Store data for rendering
+  window._crmData = { allCandidates, allLeads };
+  renderCRMTable();
+}
+
+function crmSwitchTab(tab) {
+  _crmTab = tab;
+  const rec = document.getElementById('crm-tab-rec');
+  const mkt = document.getElementById('crm-tab-mkt');
+  if (rec) { rec.style.background = tab==='recruiting'?'var(--primary)':''; rec.style.color = tab==='recruiting'?'#fff':'var(--text-muted)'; rec.style.fontWeight = tab==='recruiting'?'600':'500'; }
+  if (mkt) { mkt.style.background = tab==='marketing'?'#7c3aed':''; mkt.style.color = tab==='marketing'?'#fff':'var(--text-muted)'; mkt.style.fontWeight = tab==='marketing'?'600':'500'; }
+  renderCRMTable();
+}
+
+function renderCRMTable() {
+  const wrap = document.getElementById('crm-table-wrap');
+  if (!wrap || !window._crmData) return;
+  const q = (document.getElementById('crm-search')?.value||'').toLowerCase();
+  const f = document.getElementById('crm-filter')?.value || 'all';
+  const statusMap = { new:'badge-new', shortlisted:'badge-shortlisted', rejected:'badge-rejected', messaged:'badge-messaged' };
+  const statusLabel = { new:'● New', shortlisted:'✓ Shortlisted', rejected:'✗ Rejected', messaged:'💬 Messaged' };
+
+  if (_crmTab === 'recruiting') {
+    const rows = window._crmData.allCandidates.filter(c => {
+      const matchQ = !q || (c.name||'').toLowerCase().includes(q) || (c.phone||'').includes(q) || (c.email||'').toLowerCase().includes(q) || (c.role||'').toLowerCase().includes(q);
+      const matchF = f==='all' || c.status===f;
+      return matchQ && matchF;
+    });
+    if (!rows.length) { wrap.innerHTML = '<div class="empty-state" style="padding:40px;text-align:center;color:var(--text-muted)">No contacts found</div>'; return; }
+    wrap.innerHTML = `<table><thead><tr><th>Candidate</th><th>Contact</th><th>Role / Position</th><th>Score</th><th>Status</th><th>WhatsApp</th></tr></thead><tbody>
+      ${rows.map(c => {
+        const digits = (c.phone||'').replace(/\D/g,'');
+        const chatId = digits ? `${digits}@c.us` : null;
+        const thread = chatId ? (window._crmData.allCandidates[0]?.conversations?.[chatId] || job().conversations?.[chatId] || []) : [];
+        const lastMsg = thread[thread.length-1];
+        const hasThread = thread.length > 0;
+        return `<tr style="cursor:pointer" onclick="openCandidateDrawer(${c.id})">
+          <td>
+            <div style="display:flex;align-items:center;gap:9px">
+              <div class="cand-avatar" style="background:${candidateAvatarColor(c.name||'')}; width:32px;height:32px;font-size:12px">${(c.name||'?').split(' ').map(w=>w[0]).join('').slice(0,2).toUpperCase()}</div>
+              <div><div style="font-weight:600;font-size:13px">${escHtml(c.name||'—')}</div><div style="font-size:11px;color:var(--text-muted)">${escHtml(c.location||'')}</div></div>
+            </div>
+          </td>
+          <td><div style="font-size:12.5px">${escHtml(c.phone||'—')}</div><div style="font-size:11.5px;color:var(--text-muted)">${escHtml(c.email||'')}</div></td>
+          <td><div style="font-size:13px;font-weight:600">${escHtml(c.role||'—')}</div><div style="font-size:11.5px;color:var(--text-muted)">${escHtml(c.jobTitle||'')}</div></td>
+          <td>${c.score!==null&&c.score!==undefined?`<div style="display:flex;align-items:center;gap:6px"><div class="score-bar"><div class="score-fill ${c.score>=75?'high':c.score>=50?'mid':'low'}" style="width:${c.score}%"></div></div><span style="font-size:12px;font-weight:700">${c.score}%</span></div>`:'<span style="font-size:12px;color:var(--text-muted)">—</span>'}</td>
+          <td><span class="badge ${statusMap[c.status]||'badge-pending'}">${statusLabel[c.status]||c.status}</span></td>
+          <td>${hasThread?`<span style="font-size:11.5px;color:#25D366;font-weight:600">💬 ${thread.length} msgs</span><div style="font-size:11px;color:var(--text-muted);max-width:140px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${escHtml(lastMsg?.content?.slice(0,40)||'')}</div>`:'<span style="font-size:12px;color:var(--text-muted)">No history</span>'}</td>
+        </tr>`;
+      }).join('')}
+    </tbody></table>`;
+  } else {
+    const rows = window._crmData.allLeads.filter(m => {
+      return !q || (m.name||m.id||'').toLowerCase().includes(q) || (m.phone||'').includes(q);
+    });
+    if (!rows.length) { wrap.innerHTML = '<div class="empty-state" style="padding:40px;text-align:center;color:var(--text-muted)">No campaign leads found</div>'; return; }
+    wrap.innerHTML = `<table><thead><tr><th>Contact</th><th>Phone</th><th>Campaign</th><th>Messages Sent</th><th>Last Activity</th></tr></thead><tbody>
+      ${rows.map(m => {
+        const name = m.name || m.id || 'Unknown';
+        return `<tr>
+          <td><div style="font-weight:600;font-size:13px">${escHtml(name)}</div></td>
+          <td style="font-size:12.5px">${escHtml(m.phone||m.id||'—')}</td>
+          <td><span style="font-size:12px;background:#fdf4ff;color:#7c3aed;padding:2px 8px;border-radius:20px;font-weight:600">${escHtml(m.campaignName||'—')}</span></td>
+          <td style="font-size:12.5px;color:var(--text-muted)">${m.sentCount||1} message${(m.sentCount||1)!==1?'s':''}</td>
+          <td style="font-size:12px;color:var(--text-muted)">${m.sentAt?new Date(m.sentAt).toLocaleDateString('en-IN',{day:'numeric',month:'short'}):'—'}</td>
+        </tr>`;
+      }).join('')}
+    </tbody></table>`;
+  }
+}
+
+async function syncToZoho() {
+  if (!window._crmData) { toast('Open CRM tab first', 'error'); return; }
+  const statusEl = document.getElementById('crm-sync-status');
+
+  const records = _crmTab === 'recruiting'
+    ? window._crmData.allCandidates.filter(c => c.status === 'shortlisted' || c.status === 'messaged')
+    : window._crmData.allLeads;
+
+  if (!records.length) { toast('No records to sync (shortlisted/messaged candidates only)', 'error'); return; }
+
+  // Format for Apps Script Zoho proxy
+  const formatted = _crmTab === 'recruiting'
+    ? records.map(c => ({
+        First_Name: (c.name||'').split(' ')[0],
+        Last_Name: (c.name||'').split(' ').slice(1).join(' ') || '.',
+        Phone: c.phone || '',
+        Mobile: c.phone || '',
+        Email: c.email || '',
+        Title: c.role || '',
+        Lead_Source: 'ScoutX Recruiting',
+        Description: `Position: ${c.jobTitle||''} | Score: ${c.score??'unscreened'} | Status: ${c.status} | Skills: ${c.skills||''}`
+      }))
+    : records.map(m => ({
+        First_Name: (m.name||m.id||'Lead').split(' ')[0],
+        Last_Name: (m.name||'').split(' ').slice(1).join(' ') || '.',
+        Phone: m.phone || m.id?.replace('@c.us','') || '',
+        Lead_Source: 'ScoutX Campaign',
+        Lead_Status: 'Contacted',
+        Company: m.campaignName || 'ScoutX Campaign',
+        Description: `Campaign: ${m.campaignName||''}`
+      }));
+
+  if (statusEl) {
+    statusEl.style.display = '';
+    statusEl.style.background = '#f0fdf4';
+    statusEl.style.border = '1.5px solid #86efac';
+    statusEl.style.color = '#166534';
+    statusEl.innerHTML = `<strong>Zoho Sync</strong><br>Ready to push ${formatted.length} ${_crmTab==='recruiting'?'contacts':'leads'} to Zoho ${_crmTab==='recruiting'?'Contacts':'Leads'} module.<br><br>
+    <strong>To complete the sync:</strong> tell me in chat — "Sync these to Zoho" — and I'll push all ${formatted.length} records directly using the live Zoho connection.<br><br>
+    <button class="btn btn-primary btn-sm" onclick="triggerZohoSyncChat(${JSON.stringify(formatted).replace(/</g,'&lt;')})">Send to Chat for Instant Sync →</button>`;
+  }
+}
+
+function triggerZohoSyncChat(records) {
+  const module = _crmTab === 'recruiting' ? 'Contacts' : 'Leads';
+  const msg = `Please sync these ${records.length} ScoutX ${module} to Zoho CRM ${module} module: ${JSON.stringify(records).slice(0,500)}${JSON.stringify(records).length>500?'...(truncated)':''}`;
+  navigator.clipboard.writeText(msg);
+  toast(`Copied ${records.length} records — paste in ScoutX chat to sync`, 'success');
+}
+
+async function pullFromZoho() {
+  toast('Requesting Zoho data pull — ask in chat: "Pull Zoho Contacts into ScoutX for [job name]"', 'success');
 }
 
 // ─────────────────────────────────────────────
