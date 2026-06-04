@@ -917,6 +917,30 @@
             <input type="password" id="cfg-green-token" placeholder="your-api-token" />
           </div>
         </div>
+        <div style="margin-top:20px; padding-top:16px; border-top:1px solid var(--border)">
+          <div style="font-size:13px; font-weight:700; color:var(--text); margin-bottom:4px">Zoho CRM</div>
+          <div style="font-size:12px; color:var(--text-muted); margin-bottom:12px">
+            Connect Zoho CRM to sync candidates and leads. Generate an access token at
+            <a href="https://api-console.zoho.in" target="_blank" rel="noopener" style="color:var(--primary)">api-console.zoho.in</a> (Self Client → generate token with scope <code style="background:#f5f5f7;padding:1px 5px;border-radius:4px">ZohoCRM.modules.ALL</code>).
+          </div>
+          <div class="config-row">
+            <label>Zoho API Domain</label>
+            <select id="cfg-zoho-domain" style="width:100%;border:1.5px solid var(--border);border-radius:8px;padding:9px 12px;font-size:13px;font-family:inherit;outline:none;background:#fff">
+              <option value="https://www.zohoapis.in">India (zohoapis.in)</option>
+              <option value="https://www.zohoapis.com">US (zohoapis.com)</option>
+              <option value="https://www.zohoapis.eu">EU (zohoapis.eu)</option>
+              <option value="https://www.zohoapis.com.au">AU (zohoapis.com.au)</option>
+            </select>
+          </div>
+          <div class="config-row">
+            <label>Zoho Access Token</label>
+            <input type="password" id="cfg-zoho-token" placeholder="1000.xxxxxxxxxxxx..." />
+          </div>
+          <div style="margin-top:8px">
+            <button class="btn btn-outline btn-sm" onclick="testZohoConnection()" style="font-size:12px">Test Zoho Connection</button>
+            <span id="zoho-test-result" style="font-size:12px;margin-left:10px;color:var(--text-muted)"></span>
+          </div>
+        </div>
       </div>
 
       <!-- Shown to regular users instead of API key fields -->
@@ -1254,7 +1278,9 @@ const state = {
     greenToken: '',
     topmate: 'recruiter',
     recruiterName: 'Recruiter',
-    botIgnoreList: 'Padmaja Madhanagopal, 919740322778'
+    botIgnoreList: 'Padmaja Madhanagopal, 919740322778',
+    zohoToken: '',
+    zohoDomain: 'https://www.zohoapis.in'
   }
 };
 
@@ -3900,56 +3926,153 @@ function renderCRMTable() {
 
 async function syncToZoho() {
   if (!window._crmData) { toast('Open CRM tab first', 'error'); return; }
-  const statusEl = document.getElementById('crm-sync-status');
+  const token = state.cfg.zohoToken;
+  const domain = state.cfg.zohoDomain || 'https://www.zohoapis.in';
+  if (!token) {
+    toast('Add Zoho access token in API Settings → Zoho CRM', 'error');
+    openSettings();
+    return;
+  }
 
+  const zohoModule = _crmTab === 'recruiting' ? 'Contacts' : 'Leads';
   const records = _crmTab === 'recruiting'
     ? window._crmData.allCandidates.filter(c => c.status === 'shortlisted' || c.status === 'messaged')
     : window._crmData.allLeads;
 
-  if (!records.length) { toast('No records to sync (shortlisted/messaged candidates only)', 'error'); return; }
+  if (!records.length) { toast(`No ${_crmTab==='recruiting'?'shortlisted/messaged candidates':'campaign leads'} to sync`, 'error'); return; }
 
-  // Format for Apps Script Zoho proxy
-  const formatted = _crmTab === 'recruiting'
-    ? records.map(c => ({
-        First_Name: (c.name||'').split(' ')[0],
-        Last_Name: (c.name||'').split(' ').slice(1).join(' ') || '.',
-        Phone: c.phone || '',
-        Mobile: c.phone || '',
-        Email: c.email || '',
-        Title: c.role || '',
-        Lead_Source: 'ScoutX Recruiting',
-        Description: `Position: ${c.jobTitle||''} | Score: ${c.score??'unscreened'} | Status: ${c.status} | Skills: ${c.skills||''}`
-      }))
-    : records.map(m => ({
-        First_Name: (m.name||m.id||'Lead').split(' ')[0],
-        Last_Name: (m.name||'').split(' ').slice(1).join(' ') || '.',
-        Phone: m.phone || m.id?.replace('@c.us','') || '',
-        Lead_Source: 'ScoutX Campaign',
-        Lead_Status: 'Contacted',
-        Company: m.campaignName || 'ScoutX Campaign',
-        Description: `Campaign: ${m.campaignName||''}`
-      }));
-
+  const statusEl = document.getElementById('crm-sync-status');
   if (statusEl) {
-    statusEl.style.display = '';
+    statusEl.style.display = 'flex';
+    statusEl.style.flexDirection = 'column';
     statusEl.style.background = '#f0fdf4';
     statusEl.style.border = '1.5px solid #86efac';
     statusEl.style.color = '#166534';
-    statusEl.innerHTML = `<strong>Zoho Sync</strong><br>Ready to push ${formatted.length} ${_crmTab==='recruiting'?'contacts':'leads'} to Zoho ${_crmTab==='recruiting'?'Contacts':'Leads'} module.<br><br>
-    <strong>To complete the sync:</strong> tell me in chat — "Sync these to Zoho" — and I'll push all ${formatted.length} records directly using the live Zoho connection.<br><br>
-    <button class="btn btn-primary btn-sm" onclick="triggerZohoSyncChat(${JSON.stringify(formatted).replace(/</g,'&lt;')})">Send to Chat for Instant Sync →</button>`;
+    statusEl.innerHTML = `<div style="font-weight:600;margin-bottom:6px">Syncing to Zoho ${zohoModule}…</div><div id="sync-progress-bar" style="background:#bbf7d0;border-radius:6px;height:6px;width:0%;transition:width .3s"></div><div id="sync-progress-text" style="font-size:12px;margin-top:6px;color:#166534">0 / ${records.length}</div>`;
   }
-}
 
-function triggerZohoSyncChat(records) {
-  const module = _crmTab === 'recruiting' ? 'Contacts' : 'Leads';
-  const msg = `Please sync these ${records.length} ScoutX ${module} to Zoho CRM ${module} module: ${JSON.stringify(records).slice(0,500)}${JSON.stringify(records).length>500?'...(truncated)':''}`;
-  navigator.clipboard.writeText(msg);
-  toast(`Copied ${records.length} records — paste in ScoutX chat to sync`, 'success');
+  let created = 0, updated = 0, failed = 0;
+  for (let i = 0; i < records.length; i++) {
+    const c = records[i];
+    const phone = (c.phone || c.id || '').replace(/\D/g,'').slice(-10);
+    const name = c.name || c.id || '';
+
+    // Build Zoho record
+    const zohoRec = _crmTab === 'recruiting' ? {
+      First_Name: name.split(' ')[0] || name,
+      Last_Name: name.split(' ').slice(1).join(' ') || '.',
+      Phone: c.phone || '',
+      Mobile: c.phone || '',
+      Email: c.email || '',
+      Title: c.role || '',
+      Lead_Source: 'ScoutX Recruiting',
+      Description: `Position: ${c.jobTitle||''} | Score: ${c.score??'unscreened'} | Status: ${c.status} | Skills: ${c.skills||''} | Last contacted via WhatsApp`
+    } : {
+      First_Name: name.split(' ')[0] || name,
+      Last_Name: name.split(' ').slice(1).join(' ') || '.',
+      Phone: c.phone || c.id?.replace('@c.us','') || '',
+      Lead_Source: 'ScoutX Campaign',
+      Lead_Status: 'Contacted',
+      Company: c.campaignName || 'ScoutX',
+      Description: `Campaign: ${c.campaignName||''} | Contacted via WhatsApp`
+    };
+
+    try {
+      // Search for existing record by phone
+      let existingId = null;
+      if (phone) {
+        const searchRes = await fetch(`${domain}/crm/v7/${zohoModule}/search?phone=${encodeURIComponent(c.phone||'')}`, {
+          headers: { 'Authorization': `Zoho-oauthtoken ${token}`, 'Content-Type': 'application/json' }
+        });
+        if (searchRes.ok) {
+          const sd = await searchRes.json();
+          existingId = sd?.data?.[0]?.id;
+        }
+      }
+
+      if (existingId) {
+        // Update existing
+        await fetch(`${domain}/crm/v7/${zohoModule}/${existingId}`, {
+          method: 'PUT',
+          headers: { 'Authorization': `Zoho-oauthtoken ${token}`, 'Content-Type': 'application/json' },
+          body: JSON.stringify({ data: [zohoRec] })
+        });
+        updated++;
+      } else {
+        // Create new
+        const createRes = await fetch(`${domain}/crm/v7/${zohoModule}`, {
+          method: 'POST',
+          headers: { 'Authorization': `Zoho-oauthtoken ${token}`, 'Content-Type': 'application/json' },
+          body: JSON.stringify({ data: [zohoRec] })
+        });
+        if (createRes.ok) created++; else failed++;
+      }
+    } catch(e) { failed++; }
+
+    // Update progress
+    const pct = Math.round(((i+1)/records.length)*100);
+    const progBar = document.getElementById('sync-progress-bar');
+    const progTxt = document.getElementById('sync-progress-text');
+    if (progBar) progBar.style.width = pct + '%';
+    if (progTxt) progTxt.textContent = `${i+1} / ${records.length} — ${created} created, ${updated} updated${failed?' — ⚠️ '+failed+' failed':''}`;
+  }
+
+  if (statusEl) {
+    const ok = created + updated;
+    statusEl.style.background = failed > 0 ? '#fffbeb' : '#f0fdf4';
+    statusEl.style.borderColor = failed > 0 ? '#fde68a' : '#86efac';
+    statusEl.style.color = failed > 0 ? '#92400e' : '#166534';
+    statusEl.innerHTML = `
+      <div style="font-weight:700;font-size:14px;margin-bottom:4px">✅ Sync complete — ${ok} record${ok!==1?'s':''} pushed to Zoho ${zohoModule}</div>
+      <div style="font-size:12.5px">${created} new · ${updated} updated${failed?' · ⚠️ '+failed+' failed':''}</div>
+      ${failed?`<div style="font-size:12px;margin-top:4px">Failed records may have invalid phone numbers or an expired Zoho token.</div>`:''}`;
+  }
+  toast(`Zoho sync: ${created} created, ${updated} updated`, created+updated > 0 ? 'success' : 'error');
 }
 
 async function pullFromZoho() {
-  toast('Requesting Zoho data pull — ask in chat: "Pull Zoho Contacts into ScoutX for [job name]"', 'success');
+  const token = state.cfg.zohoToken;
+  const domain = state.cfg.zohoDomain || 'https://www.zohoapis.in';
+  if (!token) { toast('Add Zoho access token in API Settings → Zoho CRM', 'error'); openSettings(); return; }
+
+  const zohoModule = _crmTab === 'recruiting' ? 'Contacts' : 'Leads';
+  const statusEl = document.getElementById('crm-sync-status');
+  if (statusEl) { statusEl.style.display = ''; statusEl.style.background = '#f0fdf4'; statusEl.style.border = '1.5px solid #86efac'; statusEl.style.color = '#166534'; statusEl.innerHTML = `Pulling ${zohoModule} from Zoho…`; }
+
+  try {
+    const fields = zohoModule === 'Contacts'
+      ? 'First_Name,Last_Name,Email,Phone,Mobile,Title,Lead_Source'
+      : 'First_Name,Last_Name,Email,Phone,Mobile,Company,Lead_Source,Lead_Status';
+    const res = await fetch(`${domain}/crm/v7/${zohoModule}?per_page=50&fields=${fields}&sort_by=Modified_Time&sort_order=desc`, {
+      headers: { 'Authorization': `Zoho-oauthtoken ${token}` }
+    });
+    if (!res.ok) { throw new Error('HTTP ' + res.status); }
+    const data = await res.json();
+    const zohoRecords = data?.data || [];
+
+    if (zohoModule === 'Contacts') {
+      // Import into current job as candidates
+      let added = 0;
+      zohoRecords.forEach(r => {
+        const name = `${r.First_Name||''} ${r.Last_Name||''}`.trim().replace(' .','');
+        const phone = r.Phone || r.Mobile || '';
+        const email = r.Email || '';
+        if (!name || job().candidates.some(c => c.email === email || (phone && c.phone === phone))) return;
+        const newC = { id: Date.now() + Math.random(), name, phone, email, role: r.Title||'', experience: '', skills: '', location: '', status: 'new', score: null, scoreReason: '' };
+        job().candidates.push(newC);
+        added++;
+      });
+      saveJobs(); updateBadges(); renderCRM();
+      if (statusEl) { statusEl.innerHTML = `✅ Pulled ${added} new contacts from Zoho into current job candidates`; }
+      toast(`${added} contacts pulled from Zoho`, 'success');
+    } else {
+      if (statusEl) { statusEl.innerHTML = `✅ Pulled ${zohoRecords.length} leads — shown in Marketing tab`; }
+      toast(`${zohoRecords.length} Zoho leads available`, 'success');
+    }
+  } catch(e) {
+    if (statusEl) { statusEl.style.background='var(--danger-light)'; statusEl.style.borderColor='#fecaca'; statusEl.style.color='var(--danger)'; statusEl.innerHTML = `Error: ${escHtml(e.message)} — check token`; }
+    toast('Zoho pull failed: ' + e.message, 'error');
+  }
 }
 
 // ─────────────────────────────────────────────
@@ -4291,14 +4414,34 @@ async function callClaude(messages, systemPrompt, maxTokens = 1024) {
 //  CONFIG
 // ─────────────────────────────────────────────
 function saveConfig() {
-  state.cfg.claudeKey = document.getElementById('cfg-claude-key')?.value || document.getElementById('quick-claude-key')?.value || state.cfg.claudeKey;
   state.cfg.topmate = document.getElementById('cfg-topmate')?.value || document.getElementById('quick-topmate')?.value || state.cfg.topmate;
   state.cfg.recruiterName = document.getElementById('cfg-name')?.value || document.getElementById('quick-name')?.value || state.cfg.recruiterName;
-  state.cfg.greenInstance = document.getElementById('cfg-green-instance')?.value || state.cfg.greenInstance;
-  state.cfg.greenToken = document.getElementById('cfg-green-token')?.value || state.cfg.greenToken;
+  const isAdmin = AUTH.user?.email === 'krishna@nhrms.com';
+  if (isAdmin) {
+    state.cfg.claudeKey = document.getElementById('cfg-claude-key')?.value || state.cfg.claudeKey;
+    state.cfg.greenInstance = document.getElementById('cfg-green-instance')?.value || state.cfg.greenInstance;
+    state.cfg.greenToken = document.getElementById('cfg-green-token')?.value || state.cfg.greenToken;
+    const zohoTok = document.getElementById('cfg-zoho-token')?.value;
+    if (zohoTok) state.cfg.zohoToken = zohoTok;
+    const zohoDom = document.getElementById('cfg-zoho-domain')?.value;
+    if (zohoDom) state.cfg.zohoDomain = zohoDom;
+  }
   localStorage.setItem('nhrms_cfg', JSON.stringify(state.cfg));
   document.getElementById('config-modal').classList.remove('show');
-  toast('✅ Settings saved!', 'success');
+  toast('Settings saved', 'success');
+}
+
+async function testZohoConnection() {
+  const resultEl = document.getElementById('zoho-test-result');
+  const token = document.getElementById('cfg-zoho-token')?.value || state.cfg.zohoToken;
+  const domain = document.getElementById('cfg-zoho-domain')?.value || state.cfg.zohoDomain || 'https://www.zohoapis.in';
+  if (!token) { resultEl.textContent = '⚠️ Enter token first'; resultEl.style.color = 'var(--warning)'; return; }
+  resultEl.textContent = 'Testing…'; resultEl.style.color = 'var(--text-muted)';
+  try {
+    const r = await fetch(`${domain}/crm/v7/org`, { headers: { 'Authorization': `Zoho-oauthtoken ${token}` } });
+    if (r.ok) { const d = await r.json(); resultEl.textContent = `✅ Connected — ${d.org?.[0]?.company_name || 'Zoho CRM'}`; resultEl.style.color = 'var(--success)'; }
+    else { resultEl.textContent = `✗ Failed (${r.status}) — check token`; resultEl.style.color = 'var(--danger)'; }
+  } catch(e) { resultEl.textContent = '✗ Network error — check domain'; resultEl.style.color = 'var(--danger)'; }
 }
 
 // ─────────────────────────────────────────────
