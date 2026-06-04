@@ -3827,15 +3827,23 @@ function renderCRM() {
     </div>
   </div>
 
-  <!-- Search -->
-  <div style="margin-bottom:12px;display:flex;gap:10px">
-    <div style="position:relative;flex:1;max-width:320px">
+  <!-- Search + Filters -->
+  <div style="margin-bottom:12px;display:flex;gap:10px;flex-wrap:wrap">
+    <div style="position:relative;flex:1;min-width:200px;max-width:280px">
       <input type="text" id="crm-search" placeholder="Search name, phone, email…"
         oninput="renderCRMTable()"
         style="width:100%;padding:8px 12px 8px 34px;border:1.5px solid var(--border);border-radius:9px;font-size:13px;font-family:inherit;outline:none;background:#fff" />
       <svg style="position:absolute;left:10px;top:50%;transform:translateY(-50%);color:var(--text-muted)" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.35-4.35"/></svg>
     </div>
-    <select id="crm-filter" onchange="renderCRMTable()" style="padding:8px 12px;border:1.5px solid var(--border);border-radius:9px;font-size:13px;font-family:inherit;outline:none;background:#fff;cursor:pointer">
+    <select id="crm-position-filter" onchange="renderCRMTable()" style="padding:8px 12px;border:1.5px solid var(--border);border-radius:9px;font-size:13px;font-family:inherit;outline:none;background:#fff;cursor:pointer;display:${_crmTab==='recruiting'?'':'none'}">
+      <option value="all">All Positions</option>
+      ${state.jobs.map(j => `<option value="${escHtml(j.title||'')}">${escHtml(j.title||'Untitled')}</option>`).join('')}
+    </select>
+    <select id="crm-campaign-filter" onchange="renderCRMTable()" style="padding:8px 12px;border:1.5px solid var(--border);border-radius:9px;font-size:13px;font-family:inherit;outline:none;background:#fff;cursor:pointer;display:${_crmTab==='marketing'?'':'none'}">
+      <option value="all">All Campaigns</option>
+      ${state.campaigns.map(c => `<option value="${escHtml(c.name||'')}">${escHtml(c.name||'Untitled')}</option>`).join('')}
+    </select>
+    <select id="crm-filter" onchange="renderCRMTable()" style="padding:8px 12px;border:1.5px solid var(--border);border-radius:9px;font-size:13px;font-family:inherit;outline:none;background:#fff;cursor:pointer;display:${_crmTab==='recruiting'?'':'none'}">
       <option value="all">All Statuses</option>
       <option value="shortlisted">Shortlisted</option>
       <option value="messaged">Messaged</option>
@@ -3864,6 +3872,13 @@ function crmSwitchTab(tab) {
   const mkt = document.getElementById('crm-tab-mkt');
   if (rec) { rec.style.background = tab==='recruiting'?'var(--primary)':''; rec.style.color = tab==='recruiting'?'#fff':'var(--text-muted)'; rec.style.fontWeight = tab==='recruiting'?'600':'500'; }
   if (mkt) { mkt.style.background = tab==='marketing'?'#7c3aed':''; mkt.style.color = tab==='marketing'?'#fff':'var(--text-muted)'; mkt.style.fontWeight = tab==='marketing'?'600':'500'; }
+  // Show/hide the right filters
+  const posF = document.getElementById('crm-position-filter');
+  const campF = document.getElementById('crm-campaign-filter');
+  const statF = document.getElementById('crm-filter');
+  if (posF) posF.style.display = tab==='recruiting' ? '' : 'none';
+  if (campF) campF.style.display = tab==='marketing' ? '' : 'none';
+  if (statF) statF.style.display = tab==='recruiting' ? '' : 'none';
   renderCRMTable();
 }
 
@@ -3876,17 +3891,38 @@ function renderCRMTable() {
   const statusLabel = { new:'● New', shortlisted:'✓ Shortlisted', rejected:'✗ Rejected', messaged:'💬 Messaged' };
 
   if (_crmTab === 'recruiting') {
+    const posFilter = document.getElementById('crm-position-filter')?.value || 'all';
     const rows = window._crmData.allCandidates.filter(c => {
       const matchQ = !q || (c.name||'').toLowerCase().includes(q) || (c.phone||'').includes(q) || (c.email||'').toLowerCase().includes(q) || (c.role||'').toLowerCase().includes(q);
       const matchF = f==='all' || c.status===f;
-      return matchQ && matchF;
+      const matchPos = posFilter==='all' || (c.jobTitle||'')=== posFilter;
+      return matchQ && matchF && matchPos;
     });
     if (!rows.length) { wrap.innerHTML = '<div class="empty-state" style="padding:40px;text-align:center;color:var(--text-muted)">No contacts found</div>'; return; }
-    wrap.innerHTML = `<table><thead><tr><th>Candidate</th><th>Contact</th><th>Role / Position</th><th>Score</th><th>Status</th><th>WhatsApp</th></tr></thead><tbody>
-      ${rows.map(c => {
+
+    // Group by position (jobTitle)
+    const grouped = {};
+    rows.forEach(c => {
+      const key = c.jobTitle || 'Unassigned';
+      if (!grouped[key]) grouped[key] = [];
+      grouped[key].push(c);
+    });
+
+    const tableRows = Object.entries(grouped).map(([position, candidates]) => {
+      const posColor = candidateAvatarColor(position);
+      const header = `<tr><td colspan="6" style="padding:14px 14px 8px;background:#f8faff;border-top:2px solid ${posColor};border-bottom:1px solid var(--border)">
+        <div style="display:flex;align-items:center;gap:8px">
+          <div style="width:8px;height:8px;border-radius:50%;background:${posColor};flex-shrink:0"></div>
+          <span style="font-size:12px;font-weight:700;color:var(--text);letter-spacing:-.01em">${escHtml(position)}</span>
+          <span style="font-size:11px;color:var(--text-muted);background:#e8f0fb;padding:1px 7px;border-radius:10px;font-weight:600">${candidates.length} candidate${candidates.length!==1?'s':''}</span>
+        </div>
+      </td></tr>`;
+
+      const dataRows = candidates.map(c => {
         const digits = (c.phone||'').replace(/\D/g,'');
         const chatId = digits ? `${digits}@c.us` : null;
-        const thread = chatId ? (window._crmData.allCandidates[0]?.conversations?.[chatId] || job().conversations?.[chatId] || []) : [];
+        const jobObj = state.jobs.find(j => j.id === c.jobId);
+        const thread = chatId ? (jobObj?.conversations?.[chatId] || []) : [];
         const lastMsg = thread[thread.length-1];
         const hasThread = thread.length > 0;
         return `<tr style="cursor:pointer" onclick="openCandidateDrawer(${c.id})">
@@ -3897,30 +3933,71 @@ function renderCRMTable() {
             </div>
           </td>
           <td><div style="font-size:12.5px">${escHtml(c.phone||'—')}</div><div style="font-size:11.5px;color:var(--text-muted)">${escHtml(c.email||'')}</div></td>
-          <td><div style="font-size:13px;font-weight:600">${escHtml(c.role||'—')}</div><div style="font-size:11.5px;color:var(--text-muted)">${escHtml(c.jobTitle||'')}</div></td>
+          <td style="font-size:13px;font-weight:500;color:var(--text-muted)">${escHtml(c.role||'—')}</td>
           <td>${c.score!==null&&c.score!==undefined?`<div style="display:flex;align-items:center;gap:6px"><div class="score-bar"><div class="score-fill ${c.score>=75?'high':c.score>=50?'mid':'low'}" style="width:${c.score}%"></div></div><span style="font-size:12px;font-weight:700">${c.score}%</span></div>`:'<span style="font-size:12px;color:var(--text-muted)">—</span>'}</td>
           <td><span class="badge ${statusMap[c.status]||'badge-pending'}">${statusLabel[c.status]||c.status}</span></td>
           <td>${hasThread?`<span style="font-size:11.5px;color:#25D366;font-weight:600">💬 ${thread.length} msgs</span><div style="font-size:11px;color:var(--text-muted);max-width:140px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${escHtml(lastMsg?.content?.slice(0,40)||'')}</div>`:'<span style="font-size:12px;color:var(--text-muted)">No history</span>'}</td>
         </tr>`;
-      }).join('')}
-    </tbody></table>`;
+      }).join('');
+      return header + dataRows;
+    }).join('');
+
+    wrap.innerHTML = `<table><thead><tr><th>Candidate</th><th>Contact</th><th>Role</th><th>Score</th><th>Status</th><th>WhatsApp</th></tr></thead><tbody>${tableRows}</tbody></table>`;
   } else {
+    const campFilter = document.getElementById('crm-campaign-filter')?.value || 'all';
     const rows = window._crmData.allLeads.filter(m => {
-      return !q || (m.name||m.id||'').toLowerCase().includes(q) || (m.phone||'').includes(q);
+      const matchQ = !q || (m.name||m.id||'').toLowerCase().includes(q) || (m.phone||'').includes(q);
+      const matchCamp = campFilter === 'all' || (m.campaignName||'') === campFilter;
+      return matchQ && matchCamp;
     });
     if (!rows.length) { wrap.innerHTML = '<div class="empty-state" style="padding:40px;text-align:center;color:var(--text-muted)">No campaign leads found</div>'; return; }
-    wrap.innerHTML = `<table><thead><tr><th>Contact</th><th>Phone</th><th>Campaign</th><th>Messages Sent</th><th>Last Activity</th></tr></thead><tbody>
-      ${rows.map(m => {
+
+    // Group by campaign
+    const grouped = {};
+    rows.forEach(m => {
+      const key = m.campaignName || 'Uncategorised';
+      if (!grouped[key]) grouped[key] = [];
+      grouped[key].push(m);
+    });
+
+    const tableRows = Object.entries(grouped).map(([campaign, members]) => {
+      const campColor = candidateAvatarColor(campaign);
+      // Find campaign status
+      const campObj = state.campaigns.find(c => c.name === campaign);
+      const campStatus = campObj?.status || 'active';
+      const statusPill = campStatus === 'active'
+        ? `<span style="font-size:10px;background:#f0fdf4;color:#166534;padding:1px 7px;border-radius:10px;font-weight:600;border:1px solid #86efac">Active</span>`
+        : `<span style="font-size:10px;background:#f5f5f7;color:#6e6e73;padding:1px 7px;border-radius:10px;font-weight:600">Ended</span>`;
+
+      const header = `<tr><td colspan="5" style="padding:14px 14px 8px;background:#fdf8ff;border-top:2px solid ${campColor};border-bottom:1px solid var(--border)">
+        <div style="display:flex;align-items:center;gap:8px">
+          <div style="width:8px;height:8px;border-radius:50%;background:${campColor};flex-shrink:0"></div>
+          <span style="font-size:12px;font-weight:700;color:var(--text);letter-spacing:-.01em">${escHtml(campaign)}</span>
+          <span style="font-size:11px;color:#7c3aed;background:#fdf4ff;padding:1px 7px;border-radius:10px;font-weight:600">${members.length} contact${members.length!==1?'s':''}</span>
+          ${statusPill}
+        </div>
+      </td></tr>`;
+
+      const dataRows = members.map(m => {
         const name = m.name || m.id || 'Unknown';
+        const initials = name.split(' ').map(w=>w[0]).join('').slice(0,2).toUpperCase();
         return `<tr>
-          <td><div style="font-weight:600;font-size:13px">${escHtml(name)}</div></td>
-          <td style="font-size:12.5px">${escHtml(m.phone||m.id||'—')}</td>
-          <td><span style="font-size:12px;background:#fdf4ff;color:#7c3aed;padding:2px 8px;border-radius:20px;font-weight:600">${escHtml(m.campaignName||'—')}</span></td>
+          <td>
+            <div style="display:flex;align-items:center;gap:9px">
+              <div class="cand-avatar" style="background:${candidateAvatarColor(name)};width:30px;height:30px;font-size:11px">${initials}</div>
+              <div style="font-weight:600;font-size:13px">${escHtml(name)}</div>
+            </div>
+          </td>
+          <td style="font-size:12.5px">${escHtml(m.phone||m.id?.replace('@c.us','')||'—')}</td>
           <td style="font-size:12.5px;color:var(--text-muted)">${m.sentCount||1} message${(m.sentCount||1)!==1?'s':''}</td>
-          <td style="font-size:12px;color:var(--text-muted)">${m.sentAt?new Date(m.sentAt).toLocaleDateString('en-IN',{day:'numeric',month:'short'}):'—'}</td>
+          <td style="font-size:12px;color:var(--text-muted)">${m.sentAt?new Date(m.sentAt).toLocaleDateString('en-IN',{day:'numeric',month:'short',year:'numeric'}):'—'}</td>
+          <td>${m.replied?`<span style="font-size:11.5px;color:#25D366;font-weight:600">✓ Replied</span>`:'<span style="font-size:12px;color:var(--text-muted)">No reply</span>'}</td>
         </tr>`;
-      }).join('')}
-    </tbody></table>`;
+      }).join('');
+      return header + dataRows;
+    }).join('');
+
+    wrap.innerHTML = `<table><thead><tr><th>Contact</th><th>Phone</th><th>Messages</th><th>Last Activity</th><th>Response</th></tr></thead><tbody>${tableRows}</tbody></table>`;
   }
 }
 
