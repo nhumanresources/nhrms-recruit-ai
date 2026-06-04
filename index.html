@@ -823,7 +823,7 @@
     <div class="topbar-actions">
       <button onclick="openCopilot()" style="display:flex;align-items:center;gap:7px;background:#f5f5f7;border:1.5px solid var(--border);border-radius:10px;padding:7px 14px;font-size:13px;font-weight:600;color:var(--text-muted);cursor:pointer;transition:all .15s" onmouseover="this.style.borderColor='var(--primary)';this.style.color='var(--primary)';this.style.background='var(--primary-light)'" onmouseout="this.style.borderColor='var(--border)';this.style.color='var(--text-muted)';this.style.background='#f5f5f7'">
         <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.35-4.35"/></svg>
-        Copilot
+        ScoutX Intelligence
         <kbd style="font-size:10px;background:rgba(0,0,0,.06);border-radius:4px;padding:1px 5px;letter-spacing:0">⌘K</kbd>
       </button>
       <span id="topbar-status" style="font-size:13px; color:var(--text-muted)"></span>
@@ -940,7 +940,7 @@
       <div style="width:38px;height:38px;border-radius:10px;background:var(--primary);display:flex;align-items:center;justify-content:center;flex-shrink:0;box-shadow:0 4px 12px rgba(0,113,227,.3)">
         <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.35-4.35"/></svg>
       </div>
-      <input id="copilot-input" type="text" placeholder="Ask anything about recruiting or marketing…"
+      <input id="copilot-input" type="text" placeholder="Ask ScoutX Intelligence anything about recruiting or marketing…"
         style="flex:1;border:none;outline:none;font-size:17px;font-family:inherit;color:var(--text);background:transparent;letter-spacing:-.01em"
         onkeydown="if(event.key==='Enter')runCopilot();if(event.key==='Escape')closeCopilot()" />
       <kbd style="font-size:12px;color:var(--text-muted);background:#f5f5f7;border:1px solid var(--border);border-radius:6px;padding:3px 8px;white-space:nowrap">ESC to close</kbd>
@@ -955,7 +955,7 @@
       <div style="display:flex;flex-wrap:wrap;gap:9px" id="copilot-chips"></div>
       <div style="margin-top:20px;padding-top:16px;border-top:1px solid #f5f5f7;display:flex;align-items:center;gap:8px">
         <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="var(--text-muted)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><path d="M12 8v4M12 16h.01"/></svg>
-        <span style="font-size:12px;color:var(--text-muted)">Copilot has full context: your active JD, all candidates, scores, and recruiter profile.</span>
+        <span style="font-size:12px;color:var(--text-muted)">ScoutX Intelligence has full context: your active JD, all candidates, scores, and recruiter profile.</span>
       </div>
     </div>
 
@@ -1436,7 +1436,7 @@ async function runCopilot() {
   const jdText = state.jdPdf?.loaded ? state.jdPdf.text.slice(0,1200) : (j.jd?.slice(0,1200) || 'No JD loaded.');
   const shortlisted = j.candidates.filter(c => c.status === 'shortlisted' || c.status === 'messaged').length;
 
-  const systemPrompt = `You are ScoutX Copilot, an expert recruiting and marketing assistant built into ScoutX by nHRMS.
+  const systemPrompt = `You are ScoutX Intelligence, an expert recruiting and marketing assistant built into ScoutX by nHRMS.
 
 CURRENT CONTEXT:
 - Active Position: ${j.title || 'Not set'}
