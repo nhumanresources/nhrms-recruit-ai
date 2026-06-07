@@ -1156,16 +1156,19 @@ function showPendingScreen(user) {
   document.getElementById('login-screen').innerHTML = `
     <div class="login-bg-dots"></div>
     <div class="login-card" style="text-align:center;padding:48px 40px">
-      <div style="font-size:52px;margin-bottom:20px">⏳</div>
-      <h2 style="font-size:22px;font-weight:800;color:#1e293b;margin-bottom:10px">Awaiting Approval</h2>
-      <p style="color:#64748b;font-size:14px;line-height:1.7;margin-bottom:28px">
-        Hi <b>${user.name}</b>, your request has been sent to the admin.<br>
-        You'll receive an email at <b>${user.email}</b> once approved.
+      <div style="font-size:52px;margin-bottom:16px">⏳</div>
+      <h2 style="font-size:22px;font-weight:800;color:#1e293b;margin-bottom:8px">Access Request Sent</h2>
+      <p style="color:#64748b;font-size:14px;line-height:1.7;margin-bottom:20px">
+        Hi <b>${user.name}</b> — you're almost in!<br>
+        Your request has been sent to the admin.<br>
+        You'll receive a welcome email at <b>${user.email}</b> once approved.
       </p>
-      <button onclick="sessionStorage.clear();location.reload();" style="background:#4f6ef7;color:#fff;border:none;padding:12px 28px;border-radius:8px;font-size:14px;font-weight:600;cursor:pointer">← Sign out</button>
+      <div style="background:#f0fdf4;border:1.5px solid #86efac;border-radius:10px;padding:12px 18px;margin-bottom:24px;font-size:13px;color:#166534;line-height:1.6">
+        <b>What happens next:</b> The admin will approve your request — usually within the same working day. You'll get an email with a sign-in link once you're in.
+      </div>
+      <button onclick="sessionStorage.clear();location.reload();" style="background:#4f6ef7;color:#fff;border:none;padding:12px 28px;border-radius:8px;font-size:14px;font-weight:600;cursor:pointer">← Try a different account</button>
     </div>`;
 }
-
 function showRejectedScreen(user) {
   document.getElementById('login-screen').innerHTML = `
     <div class="login-bg-dots"></div>
@@ -4884,12 +4887,20 @@ async function fetchAdminUsers() {
     const data = await r.json();
 
     if (!Array.isArray(data.users)) {
-      // Apps Script doesn't yet support 'list' — show placeholder
-      document.getElementById('admin-pending-list').innerHTML =
-        `<p style="font-size:13px;color:var(--text-muted);line-height:1.6">Your Apps Script does not yet support <code>action='list'</code>.<br>
-        Update it to return <code>{users:[{email,name,status,registered_at}]}</code> for full admin functionality.</p>`;
-      document.getElementById('admin-approved-list').innerHTML =
-        `<p style="font-size:13px;color:var(--text-muted)">—</p>`;
+      document.getElementById('admin-pending-list').innerHTML = `
+        <div style="background:#fffbeb;border:1.5px solid #fde68a;border-radius:10px;padding:16px 18px;margin-bottom:8px">
+          <div style="font-size:13px;font-weight:700;color:#92400e;margin-bottom:6px">⚠️ Apps Script deployment needs updating</div>
+          <div style="font-size:12px;color:#78350f;line-height:1.7;margin-bottom:12px">
+            Your deployed web app is running an older version. To fix: in Apps Script, click <b>Deploy → Manage deployments</b>, edit the deployment, set Version to <b>"New version"</b>, click <b>Deploy</b>.<br><br>
+            <b>In the meantime</b> — use Quick Approve below to approve pending users directly.
+          </div>
+          <div style="display:flex;gap:8px;align-items:center">
+            <input id="quick-approve-email" type="email" placeholder="user@nhrms.com" style="flex:1;padding:8px 12px;border:1.5px solid #d1d5db;border-radius:8px;font-size:13px;outline:none"/>
+            <input id="quick-approve-name" type="text" placeholder="Full name (optional)" style="flex:1;padding:8px 12px;border:1.5px solid #d1d5db;border-radius:8px;font-size:13px;outline:none"/>
+            <button onclick="quickApproveUser()" style="background:#22c55e;color:#fff;border:none;padding:8px 16px;border-radius:8px;font-size:13px;font-weight:600;cursor:pointer;white-space:nowrap">✓ Approve</button>
+          </div>
+        </div>`;
+      document.getElementById('admin-approved-list').innerHTML = `<div style="font-size:12px;color:var(--text-muted);padding:8px 0">Approved users list available after Apps Script is updated.</div>`;
       return;
     }
 
@@ -4939,6 +4950,22 @@ async function fetchAdminUsers() {
       if (el) el.innerHTML = `<p style="font-size:13px;color:var(--danger);padding:8px 0">Error: ${escHtml(e.message)}</p>`;
     });
   }
+}
+
+async function quickApproveUser() {
+  const email = document.getElementById('quick-approve-email')?.value?.trim();
+  const name = document.getElementById('quick-approve-name')?.value?.trim();
+  if (!email) { toast('Enter an email address', 'error'); return; }
+  try {
+    const r = await fetch(APPROVAL_URL, { method: 'POST', body: JSON.stringify({ action: 'add', email, name: name || email, adminEmail: AUTH.user?.email }) });
+    const d = await r.json();
+    if (d.ok || d.status) {
+      toast(`✅ ${email} approved & welcome email sent`, 'success');
+      document.getElementById('quick-approve-email').value = '';
+      document.getElementById('quick-approve-name').value = '';
+      setTimeout(fetchAdminUsers, 800);
+    } else { toast('Response: ' + JSON.stringify(d).slice(0,120), 'error'); }
+  } catch(e) { toast('Error: ' + e.message, 'error'); }
 }
 
 async function adminApprove(email) {
