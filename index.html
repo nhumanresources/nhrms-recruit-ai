@@ -4615,12 +4615,12 @@ async function syncToZoho() {
 
       if (existingId) {
         // Update existing
-        await fetch(`${domain}/crm/v7/${zohoModule}/${existingId}`, {
+        const upRes = await fetch(`${domain}/crm/v2/${zohoModule}/${existingId}`, {
           method: 'PUT',
           headers: { 'Authorization': `Zoho-oauthtoken ${token}`, 'Content-Type': 'application/json' },
           body: JSON.stringify({ data: [zohoRec] })
         });
-        updated++;
+        if (upRes.ok) updated++; else failed++;
       } else {
         // Create new
         const createRes = await fetch(`${domain}/crm/v7/${zohoModule}`, {
