@@ -1123,6 +1123,12 @@ async function handleGoogleCredential(response) {
 }
 
 async function checkApprovalStatus(user) {
+  // Admin always bypasses approval — let them straight in
+  if (user.email === 'krishna@nhrms.com') {
+    sessionStorage.setItem('nhrms_user', JSON.stringify(user));
+    onLoginSuccess();
+    return;
+  }
   try {
     const r = await fetch(APPROVAL_URL, {
       method: 'POST',
