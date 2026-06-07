@@ -4574,83 +4574,29 @@ async function syncToZoho() {
     statusEl.innerHTML = `<div style="font-weight:600;margin-bottom:6px">Syncing to Zoho ${zohoModule}…</div><div id="sync-progress-bar" style="background:#bbf7d0;border-radius:6px;height:6px;width:0%;transition:width .3s"></div><div id="sync-progress-text" style="font-size:12px;margin-top:6px;color:#166534">0 / ${records.length}</div>`;
   }
 
-  let created = 0, updated = 0, failed = 0;
-  for (let i = 0; i < records.length; i++) {
-    const c = records[i];
-    const phone = (c.phone || c.id || '').replace(/\D/g,'').slice(-10);
-    const name = c.name || c.id || '';
-
-    // Build Zoho record
-    const zohoRec = _crmTab === 'recruiting' ? {
-      First_Name: name.split(' ')[0] || name,
-      Last_Name: name.split(' ').slice(1).join(' ') || '.',
-      Phone: c.phone || '',
-      Mobile: c.phone || '',
-      Email: c.email || '',
-      Title: c.role || '',
-      Lead_Source: 'ScoutX Recruiting',
-      Description: `Position: ${c.jobTitle||''} | Score: ${c.score??'unscreened'} | Status: ${c.status} | Skills: ${c.skills||''} | Last contacted via WhatsApp`
-    } : {
-      First_Name: name.split(' ')[0] || name,
-      Last_Name: name.split(' ').slice(1).join(' ') || '.',
-      Phone: c.phone || c.id?.replace('@c.us','') || '',
-      Lead_Source: 'ScoutX Campaign',
-      Lead_Status: 'Contacted',
-      Company: c.campaignName || 'ScoutX',
-      Description: `Campaign: ${c.campaignName||''} | Contacted via WhatsApp`
-    };
-
-    try {
-      // Search for existing record by phone
-      let existingId = null;
-      if (phone) {
-        const searchRes = await fetch(`${domain}/crm/v7/${zohoModule}/search?phone=${encodeURIComponent(c.phone||'')}`, {
-          headers: { 'Authorization': `Zoho-oauthtoken ${token}`, 'Content-Type': 'application/json' }
-        });
-        if (searchRes.ok) {
-          const sd = await searchRes.json();
-          existingId = sd?.data?.[0]?.id;
-        }
-      }
-
-      if (existingId) {
-        // Update existing
-        const upRes = await fetch(`${domain}/crm/v2/${zohoModule}/${existingId}`, {
-          method: 'PUT',
-          headers: { 'Authorization': `Zoho-oauthtoken ${token}`, 'Content-Type': 'application/json' },
-          body: JSON.stringify({ data: [zohoRec] })
-        });
-        if (upRes.ok) updated++; else failed++;
-      } else {
-        // Create new
-        const createRes = await fetch(`${domain}/crm/v7/${zohoModule}`, {
-          method: 'POST',
-          headers: { 'Authorization': `Zoho-oauthtoken ${token}`, 'Content-Type': 'application/json' },
-          body: JSON.stringify({ data: [zohoRec] })
-        });
-        if (createRes.ok) created++; else failed++;
-      }
-    } catch(e) { failed++; }
-
-    // Update progress
-    const pct = Math.round(((i+1)/records.length)*100);
-    const progBar = document.getElementById('sync-progress-bar');
-    const progTxt = document.getElementById('sync-progress-text');
-    if (progBar) progBar.style.width = pct + '%';
-    if (progTxt) progTxt.textContent = `${i+1} / ${records.length} — ${created} created, ${updated} updated${failed?' — ⚠️ '+failed+' failed':''}`;
-  }
-
-  if (statusEl) {
+  // Route through Apps Script proxy to avoid CORS
+  try {
+    const r = await fetch(APPROVAL_URL, {
+      method: 'POST',
+      body: JSON.stringify({ action: 'zoho_push', zohoToken: token, zohoDomain: domain, zohoModule, records })
+    });
+    const d = await r.json();
+    if (d.error) throw new Error(d.error);
+    const { created=0, updated=0, failed=0 } = d;
     const ok = created + updated;
-    statusEl.style.background = failed > 0 ? '#fffbeb' : '#f0fdf4';
-    statusEl.style.borderColor = failed > 0 ? '#fde68a' : '#86efac';
-    statusEl.style.color = failed > 0 ? '#92400e' : '#166534';
-    statusEl.innerHTML = `
-      <div style="font-weight:700;font-size:14px;margin-bottom:4px">✅ Sync complete — ${ok} record${ok!==1?'s':''} pushed to Zoho ${zohoModule}</div>
-      <div style="font-size:12.5px">${created} new · ${updated} updated${failed?' · ⚠️ '+failed+' failed':''}</div>
-      ${failed?`<div style="font-size:12px;margin-top:4px">Failed records may have invalid phone numbers or an expired Zoho token.</div>`:''}`;
+    if (statusEl) {
+      statusEl.style.background = failed > 0 ? '#fffbeb' : '#f0fdf4';
+      statusEl.style.borderColor = failed > 0 ? '#fde68a' : '#86efac';
+      statusEl.style.color = failed > 0 ? '#92400e' : '#166534';
+      statusEl.innerHTML = `<div style="font-weight:700;font-size:14px;margin-bottom:4px">✅ Sync complete — ${ok} record${ok!==1?'s':''} pushed to Zoho ${zohoModule}</div>
+        <div style="font-size:12.5px">${created} new · ${updated} updated${failed?' · ⚠️ '+failed+' failed':''}</div>
+        ${failed?'<div style="font-size:12px;margin-top:4px">Some records may have invalid phone numbers or an expired token.</div>':''}`;
+    }
+    toast(`Zoho sync: ${created} created, ${updated} updated`, ok > 0 ? 'success' : 'error');
+  } catch(e) {
+    if (statusEl) { statusEl.style.background='var(--danger-light)'; statusEl.style.borderColor='#fecaca'; statusEl.style.color='var(--danger)'; statusEl.innerHTML = `❌ Sync failed: ${escHtml(e.message)}`; }
+    toast('Zoho sync failed: ' + e.message, 'error');
   }
-  toast(`Zoho sync: ${created} created, ${updated} updated`, created+updated > 0 ? 'success' : 'error');
 }
 
 async function pullFromZoho() {
