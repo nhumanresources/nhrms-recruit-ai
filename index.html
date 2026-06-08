@@ -1,4 +1,4 @@
-<!DOCTYPE html> 
+<!DOCTYPE html>  
 <html lang="en">
 <head>
 <meta charset="UTF-8" />
@@ -4609,15 +4609,13 @@ async function pullFromZoho() {
   if (statusEl) { statusEl.style.display = ''; statusEl.style.background = '#f0fdf4'; statusEl.style.border = '1.5px solid #86efac'; statusEl.style.color = '#166534'; statusEl.innerHTML = `Pulling ${zohoModule} from Zoho…`; }
 
   try {
-    const fields = zohoModule === 'Contacts'
-      ? 'First_Name,Last_Name,Email,Phone,Mobile,Title,Lead_Source'
-      : 'First_Name,Last_Name,Email,Phone,Mobile,Company,Lead_Source,Lead_Status';
-    const res = await fetch(`${domain}/crm/v7/${zohoModule}?per_page=50&fields=${fields}&sort_by=Modified_Time&sort_order=desc`, {
-      headers: { 'Authorization': `Zoho-oauthtoken ${token}` }
+    const r = await fetch(APPROVAL_URL, {
+      method: 'POST',
+      body: JSON.stringify({ action: 'zoho_pull', zohoToken: token, zohoDomain: domain, zohoModule })
     });
-    if (!res.ok) { throw new Error('HTTP ' + res.status); }
-    const data = await res.json();
-    const zohoRecords = data?.data || [];
+    const json = await r.json();
+    if (json.error) throw new Error(json.error);
+    const zohoRecords = json.data || [];
 
     if (zohoModule === 'Contacts') {
       // Import into current job as candidates
