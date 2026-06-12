@@ -2596,7 +2596,7 @@ function renderWhatsApp() {
             oninput="state.botPrompt=this.value; saveBotSettings()">${escHtml(state.botPrompt)}</textarea>
           <div style="display:flex; gap:8px; margin-top:6px">
             <button class="btn btn-outline btn-sm" onclick="state.botPrompt=''; saveBotSettings(); document.getElementById('bot-prompt-editor').value=''" style="font-size:11px">↺ Use smart defaults</button>
-            <button class="btn btn-sm" onclick="state.execMode=!state.execMode; saveBotSettings(); renderWASection();" style="font-size:11px;border:none;cursor:pointer;border-radius:6px;padding:4px 10px;background:${state.execMode ? '#7c3aed' : '#e2e8f0'};color:${state.execMode ? '#fff' : '#374151'};font-weight:600;">🎯 Exec Mode ${state.execMode ? 'ON' : 'OFF'}</button>
+            <button class="btn btn-sm" onclick="state.execMode=!state.execMode; saveBotSettings(); renderWhatsApp();" style="font-size:11px;border:none;cursor:pointer;border-radius:6px;padding:4px 10px;background:${state.execMode ? '#7c3aed' : '#e2e8f0'};color:${state.execMode ? '#fff' : '#374151'};font-weight:600;">🎯 Exec Mode ${state.execMode ? 'ON' : 'OFF'}</button>
             <button class="btn btn-sm" style="background:#25D366;color:#fff;border:none;cursor:pointer;font-size:11px;border-radius:6px;padding:4px 10px" onclick="previewBotPrompt()">👁 Preview prompt</button>
           </div>
         </div>
