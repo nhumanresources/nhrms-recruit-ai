@@ -2968,20 +2968,8 @@ async function pollInbox(once = false) {
             if (isIgnored) {
               // Silently skip — no auto-reply, no toast noise
             } else {
-              // Only auto-reply to candidates who are in the recruiting pipeline
-              const senderDigits = chatId.replace(/\D/g, '').replace(/@.*$/, '');
-              const isRecruitingCandidate = job().candidates.some(c => {
-                if (!c.phone) return false;
-                const cDigits = c.phone.replace(/\D/g, '');
-                return senderDigits.endsWith(cDigits) || cDigits.endsWith(senderDigits);
-              });
-              if (isRecruitingCandidate) {
-                autoBotReply(chatId, senderName, txt);
-              } else {
-                // Not a known candidate — show notification but don't auto-reply
-                toast(`📩 ${senderName}: ${txt.slice(0,50)}`, 'success');
-                renderInboxSection();
-              }
+              // Auto-reply to all non-ignored contacts when bot mode is on
+              autoBotReply(chatId, senderName, txt);
             }
           } else {
             toast(`📩 ${senderName}: ${txt.slice(0,50)}`, 'success');
