@@ -1887,7 +1887,7 @@ function renderKanban(wrap) {
               ${score}
             </div>
             <div style="font-size:11px;color:var(--text-muted)">${escHtml(c.role||'')} ${c.experience?'· '+c.experience+'y':''}</div>
-            ${c._dupWarning ? `<span class="dup-badge" style="margin-top:5px;font-size:10px">⚠ Duplicate</span>` : ''}
+            ${c._dupWarning ? `<span class="dup-badge" style="margin-top:5px;font-size:10px" title="This candidate already exists in this pipeline">⚠ Duplicate · Found in: ScoutX Pipeline</span>` : ''}
           </div>`;
         }).join('')}
       </div>
