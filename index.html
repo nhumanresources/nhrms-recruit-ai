@@ -1397,6 +1397,7 @@ try {
   const bs = JSON.parse(localStorage.getItem('nhrms_bot') || '{}');
   state.botMode = bs.botMode || false;
   state.botPrompt = bs.botPrompt || '';
+  state.execMode = bs.execMode || false;
 } catch(e) {}
 try {
   const jd = JSON.parse(localStorage.getItem('nhrms_jdpdf') || '{}');
@@ -2595,6 +2596,7 @@ function renderWhatsApp() {
             oninput="state.botPrompt=this.value; saveBotSettings()">${escHtml(state.botPrompt)}</textarea>
           <div style="display:flex; gap:8px; margin-top:6px">
             <button class="btn btn-outline btn-sm" onclick="state.botPrompt=''; saveBotSettings(); document.getElementById('bot-prompt-editor').value=''" style="font-size:11px">↺ Use smart defaults</button>
+            <button class="btn btn-sm" onclick="state.execMode=!state.execMode; saveBotSettings(); renderWASection();" style="font-size:11px;border:none;cursor:pointer;border-radius:6px;padding:4px 10px;background:${state.execMode ? '#7c3aed' : '#e2e8f0'};color:${state.execMode ? '#fff' : '#374151'};font-weight:600;">🎯 Exec Mode ${state.execMode ? 'ON' : 'OFF'}</button>
             <button class="btn btn-sm" style="background:#25D366;color:#fff;border:none;cursor:pointer;font-size:11px;border-radius:6px;padding:4px 10px" onclick="previewBotPrompt()">👁 Preview prompt</button>
           </div>
         </div>
@@ -2647,7 +2649,7 @@ function resetTemplate() {
 
 // ── Bot helpers ──
 function saveBotSettings() {
-  localStorage.setItem('nhrms_bot', JSON.stringify({ botMode: state.botMode, botPrompt: state.botPrompt }));
+  localStorage.setItem('nhrms_bot', JSON.stringify({ botMode: state.botMode, botPrompt: state.botPrompt, execMode: state.execMode }));
 }
 
 // ── JD PDF feature ──
@@ -2869,7 +2871,11 @@ Evaluate strictly against the mandate. Do not introduce criteria not in the JD.`
     ? `\n\nTONE NOTE (custom override): ${state.botPrompt}`
     : '';
 
-  return `You are ${recruiterName} from NHRMS — a real senior recruiter, not a bot.
+  const identity = state.execMode
+    ? `You are ${recruiterName}, Principal Executive Search Consultant at nHRMS — a specialist retained search firm. You are conducting a curated, confidential ${positionTitle} mandate. Every candidate you message was specifically identified and headhunted — not mass-messaged. You operate with the precision of a senior executive search consultant: strategic, selective, and advisory.\n\nEXECUTIVE SEARCH RULES (take precedence):\n- Position every role as a career-defining opportunity, not just a job opening\n- Communicate as a peer to senior professionals — never like a recruiter chatbot\n- Max 1-2 sentences. Every word must earn its place. Treat candidate time as precious.\n- Acknowledge the candidate's background before asking anything of them\n- Frame the interview link as "a conversation" not an interview\n- If not a fit: warm, respectful close — treat them as a future asset`
+    : `You are ${recruiterName} from NHRMS — a real senior recruiter, not a bot.`;
+
+  return `${identity}
 
 WRITING RULES — follow exactly, no exceptions:
 - Max 1 sentence per reply. 2 sentences only if truly unavoidable.
