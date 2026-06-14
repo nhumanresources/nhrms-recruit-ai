@@ -824,6 +824,7 @@
     <div style="display:flex; gap:6px; align-items:center">
       <select id="job-select" onchange="switchJob(+this.value)" style="flex:1; background:#f8faff; border:1px solid var(--border); border-radius:6px; color:var(--text); font-size:12px; padding:5px 8px; cursor:pointer; appearance:none; -webkit-appearance:none; outline:none; overflow:hidden; white-space:nowrap; text-overflow:ellipsis"></select>
       <button onclick="createNewJob()" title="New Position" style="background:#4f6ef7; border:none; border-radius:6px; color:#fff; font-size:16px; width:28px; height:28px; cursor:pointer; display:flex; align-items:center; justify-content:center; flex-shrink:0">+</button>
+      <button onclick="deleteJob()" title="Delete this position" style="background:#ff3b30; border:none; border-radius:6px; color:#fff; font-size:13px; width:28px; height:28px; cursor:pointer; display:flex; align-items:center; justify-content:center; flex-shrink:0">🗑</button>
     </div>
   </div>
 
@@ -1445,6 +1446,70 @@ function createNewJob() {
   toast(`✅ Created: ${j.title}`);
 }
 
+function deleteJob() {
+  if (state.jobs.length <= 1) { toast('Cannot delete the last position — create a new one first', 'error'); return; }
+  const j = job();
+  if (!confirm(`Delete "${j.title}" and all ${(j.candidates||[]).length} candidates? This cannot be undone.`)) return;
+  const title = j.title;
+  state.jobs = state.jobs.filter(x => x.id !== j.id);
+  state.activeJobId = state.jobs[0].id;
+  saveJobs(); renderJobSelect(); updateBadges(); navigate('setup');
+  toast(`🗑 Deleted: ${title}`, 'success');
+}
+
+function deleteCandidate(id) {
+  const c = job().candidates.find(x => x.id === id);
+  if (!c) return;
+  if (!confirm(`Remove ${c.name} from this pipeline?`)) return;
+  job().candidates = job().candidates.filter(x => x.id !== id);
+  saveJobs(); closeDrawer(); updateBadges(); renderCandidates();
+  toast(`🗑 ${c.name} removed`, 'success');
+}
+
+function showDupReview() {
+  const dups = job().candidates.filter(c => c._dupWarning);
+  if (!dups.length) { toast('No duplicates found in this pipeline ✓', 'success'); return; }
+  document.getElementById('dup-review-modal')?.remove();
+  const modal = document.createElement('div');
+  modal.id = 'dup-review-modal';
+  modal.style.cssText = 'position:fixed;inset:0;z-index:10000;background:rgba(0,0,0,.5);display:flex;align-items:center;justify-content:center;padding:20px';
+  modal.innerHTML = `
+    <div style="background:#fff;border-radius:14px;padding:24px;max-width:580px;width:100%;max-height:80vh;display:flex;flex-direction:column">
+      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:6px">
+        <h3 style="font-size:15px;font-weight:700">⚠ Duplicate Candidates (${dups.length})</h3>
+        <button onclick="document.getElementById('dup-review-modal').remove()" style="background:none;border:none;font-size:22px;cursor:pointer;color:#64748b;line-height:1">✕</button>
+      </div>
+      <p style="font-size:12px;color:#64748b;margin-bottom:14px">These candidates already exist in this pipeline. Select the ones you want to remove.</p>
+      <div style="display:flex;gap:8px;margin-bottom:12px;align-items:center">
+        <button onclick="document.querySelectorAll('.dup-check').forEach(c=>c.checked=true)" style="font-size:12px;padding:5px 10px;border:1px solid var(--border);border-radius:6px;background:#f8fafc;cursor:pointer">Select all</button>
+        <button onclick="document.querySelectorAll('.dup-check').forEach(c=>c.checked=false)" style="font-size:12px;padding:5px 10px;border:1px solid var(--border);border-radius:6px;background:#f8fafc;cursor:pointer">Clear</button>
+        <button onclick="removeSelectedDups()" style="font-size:12px;padding:5px 14px;border:none;border-radius:6px;background:#ff3b30;color:#fff;cursor:pointer;margin-left:auto;font-weight:600">🗑 Remove selected</button>
+      </div>
+      <div style="overflow-y:auto;flex:1;display:flex;flex-direction:column;gap:6px">
+        ${dups.map(c => `
+          <label style="display:flex;align-items:center;gap:10px;padding:9px 12px;border:1px solid #fecaca;border-radius:8px;background:#fff0ef;cursor:pointer;user-select:none">
+            <input type="checkbox" class="dup-check" value="${c.id}" style="width:15px;height:15px;flex-shrink:0;cursor:pointer">
+            <div style="min-width:0;flex:1">
+              <div style="font-size:13px;font-weight:600">${escHtml(c.name||'—')}</div>
+              <div style="font-size:11px;color:#64748b">${[c.phone,c.email,c.role].filter(Boolean).map(escHtml).join(' · ')}</div>
+            </div>
+            <button onclick="event.preventDefault();deleteCandidate(${c.id})" style="background:none;border:1px solid #fecaca;border-radius:6px;padding:3px 8px;font-size:11px;color:#991b1b;cursor:pointer;flex-shrink:0">Remove</button>
+          </label>`).join('')}
+      </div>
+    </div>`;
+  document.body.appendChild(modal);
+}
+
+function removeSelectedDups() {
+  const checked = [...document.querySelectorAll('.dup-check:checked')].map(el => +el.value);
+  if (!checked.length) { toast('Select at least one candidate to remove', 'error'); return; }
+  if (!confirm(`Remove ${checked.length} candidate(s)? This cannot be undone.`)) return;
+  job().candidates = job().candidates.filter(c => !checked.includes(c.id));
+  saveJobs(); updateBadges(); renderCandidates();
+  document.getElementById('dup-review-modal')?.remove();
+  toast(`🗑 Removed ${checked.length} duplicate(s)`, 'success');
+}
+
 // ─────────────────────────────────────────────
 //  NAVIGATION
 // ─────────────────────────────────────────────
@@ -1818,6 +1883,7 @@ function renderCandidates() {
         <button class="view-btn" id="view-kanban-btn" onclick="setCandidateView('kanban')">Kanban</button>
       </div>
       <button class="btn btn-outline btn-sm" onclick="openResumeUpload()" style="font-size:12px" title="Upload a resume PDF to add a candidate">+ Resume</button>
+      ${job().candidates.some(c=>c._dupWarning) ? `<button class="btn btn-sm" onclick="showDupReview()" style="background:#fff0ef;color:#991b1b;border:1.5px solid #fecaca;font-size:12px" title="Review duplicate candidates">⚠ Duplicates (${job().candidates.filter(c=>c._dupWarning).length})</button>` : ''}
     </div>
     <div id="candidates-view-wrap">
     <div class="table-wrap">
@@ -2026,6 +2092,7 @@ function renderDrawerContent(c) {
       <div style="font-size:12px; color:var(--text-muted); margin-top:2px">${escHtml(c.role || '')} ${c.experience ? '· ' + c.experience + ' yrs' : ''}</div>
     </div>
     ${score !== null ? `<div class="score-ring" style="color:${scoreColor}; border-color:${scoreColor}">${score}</div>` : ''}
+    <button onclick="deleteCandidate(${c.id})" title="Remove candidate" style="background:none;border:1.5px solid #fecaca;border-radius:8px;padding:4px 10px;font-size:12px;color:#991b1b;cursor:pointer;font-weight:600;flex-shrink:0">🗑 Remove</button>
     <button class="drawer-close" onclick="closeDrawer()">×</button>
   `;
 
