@@ -1429,8 +1429,9 @@ function deleteJob() {
 }
 
 function deleteCandidate(id) {
+  id = +id;
   const c = job().candidates.find(x => x.id === id);
-  if (!c) return;
+  if (!c) { toast('Candidate not found — try refreshing', 'error'); return; }
   if (!confirm(`Remove ${c.name} from this pipeline?`)) return;
   job().candidates = job().candidates.filter(x => x.id !== id);
   saveJobs(); closeDrawer(); updateBadges(); renderCandidates();
@@ -1781,8 +1782,9 @@ function loadCSV(file) {
     const rows = text.split('\n').map(r => r.split(',').map(c => c.replace(/^"|"$/g,'').trim()));
     const headers = rows[0].map(h => h.toLowerCase().replace(/\s+/g,'_'));
     job().candidates = rows.slice(1).filter(r => r.some(c => c)).map((r, i) => {
-      const obj = { id: Date.now() + i, status: 'new', score: null, scoreReason: '', notes: [], pipelineStage: 'sourced', addedAt: new Date().toISOString() };
-      headers.forEach((h, hi) => { obj[h] = r[hi] || ''; });
+      const _cid = Date.now() + i;
+      const obj = { id: _cid, status: 'new', score: null, scoreReason: '', notes: [], pipelineStage: 'sourced', addedAt: new Date().toISOString() };
+      headers.forEach((h, hi) => { if (h !== 'id') obj[h] = r[hi] || ''; });
       // normalize common column names
       obj.name = obj.name || obj.full_name || obj.candidate_name || `Candidate ${i+1}`;
       obj.phone = obj.phone || obj.mobile || obj.phone_number || obj.contact || '';
@@ -3283,6 +3285,7 @@ async function launchCampaign(campaignId) {
 }
 
 function deleteCampaign(campaignId) {
+  campaignId = +campaignId;
   if (!confirm('Delete this campaign and all its data?')) return;
   state.campaigns = state.campaigns.filter(c => c.id !== campaignId);
   if (state.activeCampaignId === campaignId) {
