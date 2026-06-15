@@ -2531,7 +2531,8 @@ function renderWhatsApp() {
           </div>
           <div style="display:flex;gap:8px;align-items:center">
             <button class="btn btn-outline btn-sm" onclick="event.stopPropagation();pollInbox(true)" style="font-size:11px">🔄 Refresh</button>
-            <button class="btn btn-outline btn-sm" onclick="event.stopPropagation();startInboxPolling()" style="font-size:11px;color:#25D366;border-color:#25D366">▶ Auto-poll</button>
+            <button class="btn btn-outline btn-sm" onclick="event.stopPropagation();startInboxPolling()" style="font-size:11px;color:#25D366;border-color:#25D366" id="btn-start-poll">▶ Auto-poll</button>
+            <button class="btn btn-outline btn-sm" onclick="event.stopPropagation();stopInboxPolling();renderWhatsApp()" style="font-size:11px;color:#dc2626;border-color:#dc2626" id="btn-stop-poll">⏹ Stop</button>
           </div>
         </div>
         <div class="card-body" id="inbox-body">
@@ -2582,7 +2583,9 @@ function renderWhatsApp() {
         ${state.botMode ? `
         <div style="background:#f0fdf4; border-radius:8px; padding:10px 12px; margin-bottom:12px; font-size:12px; color:#166534">
           ✅ Bot is <strong>active</strong> — polling every 8s · replies automatically to HR enquiries using Claude + your JD
-          ${_botPolling ? '' : '<br><button onclick="startInboxPolling()" style="margin-top:6px;background:#25D366;color:#fff;border:none;border-radius:6px;padding:4px 10px;cursor:pointer;font-size:11px">▶ Start polling</button>'}
+          ${_botPolling
+      ? '<br><button onclick="stopInboxPolling();renderWhatsApp()" style="margin-top:6px;background:#dc2626;color:#fff;border:none;border-radius:6px;padding:4px 10px;cursor:pointer;font-size:11px">⏹ Stop bot</button>'
+      : '<br><button onclick="startInboxPolling();renderWhatsApp()" style="margin-top:6px;background:#25D366;color:#fff;border:none;border-radius:6px;padding:4px 10px;cursor:pointer;font-size:11px">▶ Start bot</button>'}
         </div>
 
         <!-- ── JD PDF UPLOAD SECTION ── -->
