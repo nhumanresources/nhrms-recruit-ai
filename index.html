@@ -3268,11 +3268,16 @@ async function launchCampaign(campaignId) {
   for (let i = 0; i < toSend.length; i++) {
     const member = toSend[i];
     try {
-      await sendReply(member.id, campaign.openingMessage);
+      const _firstName = (member.name || 'there').split(' ')[0];
+      const _personalMsg = (campaign.openingMessage || '')
+        .replace(/\{name\}/gi, _firstName)
+        .replace(/\{full_name\}/gi, member.name || '')
+        .replace(/\bHi Candidate\b/g, 'Hi ' + _firstName);
+      await sendReply(member.id, _personalMsg);
       member.sent = true;
       // seed conversation history with opening message
       campaign.conversations = campaign.conversations || {};
-      campaign.conversations[member.id] = [{ role: 'assistant', content: campaign.openingMessage, time: Date.now() }];
+      campaign.conversations[member.id] = [{ role: 'assistant', content: _personalMsg, time: Date.now() }];
       saveCampaigns();
       if (document.querySelector('.nav-item.active')?.dataset.view === 'campaigns') renderCampaigns();
       toast(`✅ Sent to ${member.name} (${i+1}/${toSend.length})`);
